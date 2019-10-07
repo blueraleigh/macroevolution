@@ -15,4 +15,4 @@ library(macroevolution)
 ```
 
 More detailed documentation and examples can then be found by consulting
-the help file for individual functions.
+the help files of individual functions.
