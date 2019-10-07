@@ -1,0 +1,2 @@
+useDynLib(macroevolution, .registration=TRUE)
+exportPattern("^[[:alpha:]]+")

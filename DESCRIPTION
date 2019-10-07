@@ -1,0 +1,12 @@
+Package: macroevolution
+Type: Package
+Title: Macroevolution: a package for comparative analysis of biological diversity
+Version: 1.0
+Date: 2019-10-07
+Author: Michael C. Grundler
+Maintainer: Michael C. Grundler <mcgrundler@gmail.com>
+Description: Provides various functions for analyzing character evolution and
+    diversification.
+NeedsCompilation: yes
+License: Public domain
+RoxygenNote: 6.0.1
