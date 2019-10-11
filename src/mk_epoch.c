@@ -738,12 +738,8 @@ static double asr_compute(
         rate = RATE(model->e.i);
         matrix_exponential(rate, model->e.t, model->nstate, model->pij);
 
-        for (i = 0; i < model->nstate; ++i) {
-            if (i != j)
-                lk += UCLK(i, anc) * SCLK(i, sib) * PROB(i, j) * init[j];
-            else
-                lk += UCLK(i, anc) * SCLK(i, sib) * PROB(i, i) * init[j];
-        }
+        for (i = 0; i < model->nstate; ++i)
+            lk += UCLK(i, anc) * SCLK(i, sib) * PROB(i, j) * init[j];
 
     } else {
 
