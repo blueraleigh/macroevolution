@@ -44,10 +44,10 @@ The number of states should be even.")
         }
         half = nstate / 2L
         for (i in 1L:nepoch) {
-            bad = sum(layout[upper.tri(layout[1L:half, 1L:half, i])])
-            bad = bad + sum(layout[lower.tri(layout[1L:half, 1L:half, i])])
-            bad = bad + sum(layout[upper.tri(layout[1L:half, (half+1L):nstate, i])])
-            bad = bad + sum(layout[lower.tri(layout[(half+1L):nstate, 1L:half, i])])
+            bad = sum(layout[1L:half, 1L:half, i][upper.tri(layout[1L:half, 1L:half, i])])
+            bad = bad + sum(layout[1L:half, 1L:half, i][lower.tri(layout[1L:half, 1L:half, i])])
+            bad = bad + sum(layout[1L:half, (half+1L):nstate, i][upper.tri(layout[1L:half, (half+1L):nstate, i])])
+            bad = bad + sum(layout[(half+1L):nstate, 1L:half, i][lower.tri(layout[(half+1L):nstate, 1L:half, i])])
             if (bad) {
                 stop("Provided rate matrix layout is not a valid covarion model.
 Ensure that all off-diagonal elements in upper left, upper right,
