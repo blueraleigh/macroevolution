@@ -25,4 +25,9 @@ SEXP mkdmm_mcmc_run(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP mkdmm_marginal_asr(SEXP);
 SEXP mkdmm_posterior_multinomial(SEXP);
 
+SEXP mkepoch_rate_init(SEXP, SEXP, SEXP, SEXP);
+SEXP mkepoch_model_init(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP mkepoch_loglk(SEXP, SEXP);
+SEXP mkepoch_marginal_asr(SEXP, SEXP);
+
 #endif

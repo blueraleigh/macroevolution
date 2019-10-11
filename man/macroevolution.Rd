@@ -48,5 +48,8 @@ plot.tree
 make.mk.dmm
 make.mk.dmm.from.sample
 read.mk.dmm
+make.mk.epoch
+make.ratematrix.mk.epoch
+make.asr.mk.epoch
 }
 
