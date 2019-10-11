@@ -131,7 +131,8 @@ struct rate {
     /* layout[i + j*nstate + k*nstate*nstate] = parameter index for the
     ** i -> j transition rate in rate matrix k. These indices are 1-based,
     ** so a value of 0 means that transition rate is constrained to be 0.
-    ** Otherwise, this value minus 1 is a column index in par (see below) */
+    ** Otherwise, this value minus 1 is the index of a rate parameter passed
+    ** to the log likelihood function */
     int *layout;
 
     /* rate[i + j*nstate + k*nstate*nstate] = i -> j transition rate
