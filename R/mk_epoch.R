@@ -23,7 +23,7 @@ make.ratematrix.mk.epoch = function(layout, covarion=FALSE) {
         stop("Transition rate matrices must be square")
 
     pars = c(layout)
-    pars = pars[pars > 0L]
+    pars = pars[pars > 0L & !is.na(pars)]
 
     if (!length(pars))
         stop("Some transition rates must be non-zero")
