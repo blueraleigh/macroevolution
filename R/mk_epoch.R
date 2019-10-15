@@ -99,7 +99,7 @@ print.ratematrix.mk.epoch = function(x, ...) {
 #'  ambiguous coding state (represented by the name of the list item) to a
 #'  set of non-ambiguous states (represented by the value of the list item).
 #' @return A closure that inherits class \code{mk.epoch}, which is a function
-#'  that computes the log likelihood of \code{x} given a vector of transtion
+#'  that computes the log likelihood of \code{x} given a vector of transition
 #'  rate parameters.
 #' @author Michael C. Grundler
 #' @examples
@@ -113,8 +113,8 @@ print.ratematrix.mk.epoch = function(x, ...) {
 #'   # epoch, but allow for a different rate in each epoch
 #'   layout = array(0, c(2, 2, 3))
 #'   layout[, , 1] = 1
-#'   layout[, , 1] = 2
-#'   layout[, , 1] = 3
+#'   layout[, , 2] = 2
+#'   layout[, , 3] = 3
 #'
 #'   rate = make.ratematrix.mk.epoch(layout, covarion=FALSE)
 #'
