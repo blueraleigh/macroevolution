@@ -25,4 +25,11 @@ SEXP mkdmm_mcmc_run(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP mkdmm_marginal_asr(SEXP);
 SEXP mkdmm_posterior_multinomial(SEXP);
 
+SEXP do_fitch_pscore(SEXP, SEXP, SEXP);
+SEXP do_fitch_mpr(SEXP, SEXP, SEXP, SEXP);
+SEXP do_fitch_history(SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP do_fitch_count(SEXP, SEXP, SEXP);
+SEXP do_fitch_count2(SEXP, SEXP, SEXP, SEXP);
+SEXP do_fitch_phat(SEXP, SEXP, SEXP);
+
 #endif

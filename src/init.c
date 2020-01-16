@@ -27,6 +27,13 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(mkdmm_marginal_asr, 1),
     CALLDEF(mkdmm_posterior_multinomial, 1),
 
+    CALLDEF(do_fitch_pscore, 3),
+    CALLDEF(do_fitch_mpr, 4),
+    CALLDEF(do_fitch_history, 5),
+    CALLDEF(do_fitch_count, 3),
+    CALLDEF(do_fitch_count2, 4),
+    CALLDEF(do_fitch_phat, 3),
+
     {NULL, NULL, 0}
 };
 
