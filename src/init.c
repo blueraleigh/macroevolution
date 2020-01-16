@@ -45,6 +45,11 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(mk2_loglk_conditional, 3),
     CALLDEF(mk2_gradient_conditional, 3),
 
+    CALLDEF(mkepoch_rate_init, 4),
+    CALLDEF(mkepoch_model_init, 6),
+    CALLDEF(mkepoch_loglk, 2),
+    CALLDEF(mkepoch_marginal_asr, 2),
+
     {NULL, NULL, 0}
 };
 

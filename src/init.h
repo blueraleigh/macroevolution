@@ -43,4 +43,9 @@ SEXP mk2_mcmc_slice(SEXP, SEXP, SEXP, SEXP);
 SEXP mk2_loglk_conditional(SEXP, SEXP, SEXP);
 SEXP mk2_gradient_conditional(SEXP, SEXP, SEXP);
 
+SEXP mkepoch_rate_init(SEXP, SEXP, SEXP, SEXP);
+SEXP mkepoch_model_init(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP mkepoch_loglk(SEXP, SEXP);
+SEXP mkepoch_marginal_asr(SEXP, SEXP);
+
 #endif
