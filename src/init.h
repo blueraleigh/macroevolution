@@ -32,4 +32,15 @@ SEXP do_fitch_count(SEXP, SEXP, SEXP);
 SEXP do_fitch_count2(SEXP, SEXP, SEXP, SEXP);
 SEXP do_fitch_phat(SEXP, SEXP, SEXP);
 
+SEXP mk2_model_init(SEXP, SEXP);
+SEXP mk2_loglk(SEXP, SEXP);
+SEXP mk2_grad1(SEXP, SEXP);
+SEXP mk2_grad2(SEXP, SEXP);
+SEXP mk2_uclk(SEXP, SEXP);
+SEXP mk2_marginal_asr(SEXP, SEXP);
+SEXP mk2_perr(SEXP, SEXP);
+SEXP mk2_mcmc_slice(SEXP, SEXP, SEXP, SEXP);
+SEXP mk2_loglk_conditional(SEXP, SEXP, SEXP);
+SEXP mk2_gradient_conditional(SEXP, SEXP, SEXP);
+
 #endif
