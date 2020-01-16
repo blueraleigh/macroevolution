@@ -25,4 +25,13 @@ SEXP mkdmm_mcmc_run(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP mkdmm_marginal_asr(SEXP);
 SEXP mkdmm_posterior_multinomial(SEXP);
 
+SEXP rcm_dmm_model_init(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rcm_model_mcmc_run(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rcm_marginal_asr(SEXP);
+SEXP rcm_stochastic_map_expected_counts(SEXP);
+SEXP rcm_stochastic_map(SEXP, SEXP);
+SEXP rcm_dmm_posterior_multinomial(SEXP);
+SEXP rcm_expected_loss(SEXP, SEXP, SEXP);
+SEXP rcm_posterior_coincidence(SEXP);
+
 #endif

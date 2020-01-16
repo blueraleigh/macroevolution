@@ -27,6 +27,15 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(mkdmm_marginal_asr, 1),
     CALLDEF(mkdmm_posterior_multinomial, 1),
 
+    CALLDEF(rcm_dmm_model_init, 6),
+    CALLDEF(rcm_model_mcmc_run, 7),
+    CALLDEF(rcm_marginal_asr, 1),
+    CALLDEF(rcm_stochastic_map_expected_counts, 1),
+    CALLDEF(rcm_stochastic_map, 2),
+    CALLDEF(rcm_dmm_posterior_multinomial, 1),
+    CALLDEF(rcm_expected_loss, 3),
+    CALLDEF(rcm_posterior_coincidence, 1),
+
     {NULL, NULL, 0}
 };
 
