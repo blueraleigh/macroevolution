@@ -27,6 +27,17 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(mkdmm_marginal_asr, 1),
     CALLDEF(mkdmm_posterior_multinomial, 1),
 
+    CALLDEF(mk2_model_init, 2),
+    CALLDEF(mk2_loglk, 2),
+    CALLDEF(mk2_grad1, 2),
+    CALLDEF(mk2_grad2, 2),
+    CALLDEF(mk2_uclk, 2),
+    CALLDEF(mk2_marginal_asr, 2),
+    CALLDEF(mk2_perr, 2),
+    CALLDEF(mk2_mcmc_slice, 4),
+    CALLDEF(mk2_loglk_conditional, 3),
+    CALLDEF(mk2_gradient_conditional, 3),
+
     {NULL, NULL, 0}
 };
 
