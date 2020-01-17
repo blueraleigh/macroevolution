@@ -66,8 +66,12 @@ static struct rcm_state *state_add(struct rcm_statelist *sl)
         }
         sl->tail = state;
     }
-
-    return (sl->len < sl->r) ? sl->tail->prev : sl->tail;
+    // was previously this (prior to 2020-01-17):
+    //     return (sl->len < sl->r) ? sl->tail->prev : sl->tail;
+    // but this caused a bug when model was initialized with
+    // no empty states. pretty sure this change will not now
+    // cause bugs when model is initialized with empty states
+    return (sl->len <= sl->r) ? sl->tail->prev : sl->tail;
 }
 
 
@@ -687,6 +691,7 @@ void rcm_init_states(int *stateid, struct rcm *model)
                 model->push0(i, model->data, state->stat);
             }
         }
+
         head = CDR(head);
     }
 
