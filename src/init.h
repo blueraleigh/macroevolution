@@ -48,7 +48,7 @@ SEXP mkepoch_model_init(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP mkepoch_loglk(SEXP, SEXP);
 SEXP mkepoch_marginal_asr(SEXP, SEXP);
 
-SEXP rcm_dmm_model_init(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP rcm_dmm_model_init(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rcm_kmeans_counts_model_init(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rcm_model_mcmc_run(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rcm_marginal_asr(SEXP);

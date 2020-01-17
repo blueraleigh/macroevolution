@@ -1,5 +1,11 @@
 #include "rcm.h"
 
+/* hyperparameter on Dirichlet prior, shared by all states */
+static double BETASUM = 0;
+static double LGAMMA_BETASUM = 0;
+static double *BETA = 0;
+static double *LGAMMA_BETA = 0;
+
 /* Sparse representation of count data */
 struct rcm_data {
     /* Number of species in the dataset */
@@ -153,26 +159,12 @@ struct rcm_stat {
 
     /* aggregated counts */
     int *count;
-
-    /* sum of all elements in beta vector */
-    double betasum;
-
-    /* log gamma(betasum) */
-    double lgamma_betasum;
-
-    /* Dirichlet hyperparameter for each state */
-    double *beta;
-
-    /* log gamma(beta[j]) for each j */
-    double *lgamma_beta;
 };
 
 
 static void stat_free(struct rcm_stat *stat)
 {
     free(stat->count);
-    free(stat->beta);
-    free(stat->lgamma_beta);
     free(stat);
 }
 
@@ -184,26 +176,12 @@ static struct rcm_stat *stat_alloc(int p)
         error("failed to allocate memory for running stat struct.");
     stat->n = 0;
     stat->p = p;
-    stat->betasum = 0;
-    stat->lgamma_betasum = 0;
     stat->count = calloc(p, sizeof(int));
-    stat->beta = calloc(p, sizeof(double));
-    stat->lgamma_beta = calloc(p, sizeof(double));
-    if (!stat->count || !stat->beta || !stat->lgamma_beta)
+    if (!stat->count)
     {
         free(stat);
         error("failed to allocate memory for running stat struct.");
     }
-
-    /* for now beta is fixed to vector of 1's */
-    int i;
-    for (i = 0; i < stat->p; ++i)
-    {
-        stat->betasum += 1;
-        stat->beta[i] = 1;
-        stat->lgamma_beta[i] = lgammafn(1);
-    }
-    stat->lgamma_betasum = lgammafn(stat->betasum);
 
     return stat;
 }
@@ -215,15 +193,14 @@ static double stat_push(int index, struct rcm_data *data, struct rcm_stat *stat)
     int j;
     int sz;
     int x;
-    double *beta = stat->beta;
     double plnl = 0;
 
     sz = data->tsz[index];
 
     if (sz)
     {
-        plnl += lgammafn(stat->betasum + stat->n) -
-            lgammafn(stat->betasum + stat->n + sz);
+        plnl += lgammafn(BETASUM + stat->n) -
+            lgammafn(BETASUM + stat->n + sz);
     }
 
     data_prepare(index, data);
@@ -231,8 +208,8 @@ static double stat_push(int index, struct rcm_data *data, struct rcm_stat *stat)
     {
         j = data->cat;
         x = data->cnt;
-        plnl += lgammafn(stat->count[j] + x + beta[j])
-            - lgammafn(stat->count[j] + beta[j]);
+        plnl += lgammafn(stat->count[j] + x + BETA[j])
+            - lgammafn(stat->count[j] + BETA[j]);
         stat->count[j] += x;
     }
 
@@ -288,11 +265,11 @@ static double stat_loglk(struct rcm_stat *stat, struct rcm_data *data)
 
     for (j = 0; j < stat->p; ++j)
     {
-        loglk += lgammafn(stat->count[j] + stat->beta[j]) -
-            stat->lgamma_beta[j];
+        loglk += lgammafn(stat->count[j] + BETA[j]) -
+            LGAMMA_BETA[j];
     }
 
-    loglk += stat->lgamma_betasum - lgammafn(stat->n + stat->betasum);
+    loglk += LGAMMA_BETASUM - lgammafn(stat->n + BETASUM);
 
     return loglk;
 }
@@ -305,6 +282,12 @@ void rcm_dmm_free(SEXP model)
     data_free(m->data);
     free(m);
     R_ClearExternalPtr(model);
+    free(BETA);
+    free(LGAMMA_BETA);
+    BETA = 0;
+    LGAMMA_BETA = 0;
+    BETASUM = 0;
+    LGAMMA_BETASUM = 0;
 }
 
 
@@ -314,6 +297,7 @@ SEXP rcm_dmm_model_init(
     SEXP p,
     SEXP r,
     SEXP rate,
+    SEXP beta,
     SEXP stateid)
 {
     int j;
@@ -331,6 +315,18 @@ SEXP rcm_dmm_model_init(
     model->pop = &stat_pop;
     model->data = data_alloc(INTEGER(getAttrib(data, R_DimSymbol))[0],
         INTEGER(data), model);
+
+    BETASUM = 0;
+    LGAMMA_BETASUM = 0;
+    BETA = calloc(INTEGER(p)[0], sizeof(double));
+    LGAMMA_BETA = calloc(INTEGER(p)[0], sizeof(double));
+    for (j = 0; j < INTEGER(p)[0]; ++j)
+    {
+        BETASUM += REAL(beta)[j];
+        BETA[j] = REAL(beta)[j];
+        LGAMMA_BETA[j] = lgammafn(REAL(beta)[j]);
+    }
+    LGAMMA_BETASUM = lgammafn(BETASUM);
 
     model->sl.stat_loglk = &stat_loglk;
     model->sl.stat_alloc = &stat_alloc;
@@ -377,7 +373,7 @@ SEXP rcm_dmm_posterior_multinomial(SEXP model)
     for (i = sl->head, k = 0; i != NULL; i = i->next, ++k)
     {
         for (j = 0; j < m->p; ++j)
-            d[k + j*r] = i->stat->count[j] + i->stat->beta[j];
+            d[k + j*r] = i->stat->count[j] + BETA[j];
     }
 
     UNPROTECT(1);

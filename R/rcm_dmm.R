@@ -1,4 +1,4 @@
-make.rcm.dmm = function(phy, x, r, stateid.init, rate.init)
+make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init)
 {
     stopifnot(is.tree(phy))
     stopifnot(tree.isbinary(phy))
@@ -23,7 +23,29 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init)
     f = (floor((Nnode(phy) - 1) / r) + 1) / (Nnode(phy) - 1)
     rate.max = -log((f*r - 1) / (r - 1)) / (r * mean(brlens(phy)[-root(phy)]))
 
-    beta.init = rep(1, p)
+    if (missing(beta.init))
+    {
+        beta.init = structure(rep(1, p), names=rnames)
+    }
+    else {
+        if (length(beta.init) == 1L)
+            beta.init = structure(rep(beta.init, p), names=rnames)
+        else
+            stopifnot(length(beta.init) == p)
+
+        if (is.null(names(beta.init)))
+        {
+            names(beta.init) = rnames
+            warning("beta.init vector supplied without names")
+        }
+        else
+        {
+            stopifnot(all(names(beta.init) %in% rnames))
+            stopifnot(all(rnames %in% names(beta.init)))
+            beta.init = beta.init[rnames]
+        }
+        stopifnot(all(beta.init > 0))
+    }
 
     if (missing(rate.init))
     {
