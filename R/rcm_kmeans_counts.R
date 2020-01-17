@@ -1,4 +1,4 @@
-make.rcm.dmm = function(phy, x, r, stateid.init, rate.init)
+make.rcm.kmeans.counts = function(phy, x, r, stateid.init, rate.init)
 {
     stopifnot(is.tree(phy))
     stopifnot(tree.isbinary(phy))
@@ -20,10 +20,10 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init)
     r = as.integer(r)
     p = length(rnames)
 
+    counts = xtabs(x[, 3] ~ x[, 1] + x[, 2])
+
     f = (floor((Nnode(phy) - 1) / r) + 1) / (Nnode(phy) - 1)
     rate.max = -log((f*r - 1) / (r - 1)) / (r * mean(brlens(phy)[-root(phy)]))
-
-    beta.init = rep(1, p)
 
     if (missing(rate.init))
     {
@@ -57,12 +57,14 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init)
         stopifnot(length(stateid.init) == Ntip(phy))
         if (length(unique(stateid.init)) > r)
             stop("size of initial partition is too large")
+        if (length(unique(stateid.init)) < r)
+            stop("size of initial partition is too small")
     }
 
     model = .Call(
-        rcm_dmm_model_init,
+        rcm_kmeans_counts_model_init,
         phy,
-        x,
+        counts,
         p,
         r,
         rate.init,
@@ -92,7 +94,6 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init)
             # eos=NULL means newick string is not NUL terminated, in contrast
             # to other strings written by writeBin above
             writeChar(newick, eos=NULL, outputConn)
-            writeBin(c(beta.init), outputConn)
         }
 
         .Call(
@@ -110,7 +111,7 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init)
 }
 
 
-read.rcm = function(output.file, skip=0, n=-1)
+read.rcm.kmeans.counts = function(output.file, skip=0, n=-1)
 {
     con = file(output.file, "rb")
     on.exit(close(con))
@@ -129,11 +130,8 @@ read.rcm = function(output.file, skip=0, n=-1)
     dataset = matrix(readBin(con, integer(), 3L * nr), nr, 3L)
     newick = readChar(con, nc)
 
-    # Dirichlet hyperparameters for each state
-    dprior = structure(readBin(con, double(), p), names=rnames)
-
     header.sz = 20 + (nr*3*4) + nc + sum(nchar(tip.names, "bytes") + 1) +
-        p * 8 + sum(nchar(rnames, "bytes") + 1)
+        sum(nchar(rnames, "bytes") + 1)
     file.sz = file.size(output.file) - header.sz
     line.sz = 8 * 3 + 4 * ntip
 
@@ -161,52 +159,9 @@ read.rcm = function(output.file, skip=0, n=-1)
             stateid[i, ] = readBin(con, integer(), ntip)
         }
 
-        return (list(r=r, pars=pars, stateid=stateid,
-            dirichlet.prior=dprior, dataset=dataset, newick=newick))
+        return (list(r=r, pars=pars, stateid=stateid, dataset=dataset,
+            newick=newick))
     }
 
     return (NULL)
-}
-
-
-make.rcm.from.sample = function(i, output.file)
-{
-    out = read.rcm(output.file, skip=i, n=1)
-    phy = read.newick(text=out$newick)
-
-    model = .Call(
-        rcm_dmm_model_init,
-        phy,
-        out$dataset,
-        length(out$dirichlet.prior),
-        out$r,
-        out$pars[1, 3],
-        out$stateid[1, ])
-
-    # align tip state indices to rows of dens.* objects
-    tip.state = match(out$stateid[1L, ], unique(out$stateid[1L, ]))
-
-    asr = .Call(rcm_marginal_asr, model)
-    dirichlet.pars = .Call(rcm_dmm_posterior_multinomial, model)
-
-    dens.mean = structure(
-        sweep(dirichlet.pars, 1, rowSums(dirichlet.pars), "/")
-        , dimnames=list(NULL, names(out$dirichlet.prior)))
-    dens.map = structure(
-        sweep(dirichlet.pars - 1, 1, rowSums(dirichlet.pars - 1), "/")
-        , dimnames=list(NULL, names(out$dirichlet.prior)))
-
-    smap = function(n)
-    {
-        stopifnot(as.integer(n) > 0)
-        arr = .Call(rcm_stochastic_map, as.integer(n), model)
-        dim(arr) = c(nrow(dens.mean), nrow(dens.mean), n)
-        return (arr)
-    }
-
-    expected.counts = structure(t(.Call(rcm_stochastic_map_expected_counts, model))
-        , dimnames=list(NULL, c("posterior", "prior")))
-
-    return (list(asr=asr, smap=smap, dens.map=dens.map, dens.mean=dens.mean,
-        tip.state=tip.state, expected.counts=expected.counts))
 }
