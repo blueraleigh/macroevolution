@@ -88,6 +88,7 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init)
         p,
         r,
         rate.init,
+        beta.init,
         as.integer(stateid.init))
 
     mcmc = function(niter=1000L, thin=1L, update.node=1, update.rate=1,
@@ -193,7 +194,7 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
 
 make.rcm.dmm.from.sample = function(i, output.file)
 {
-    out = read.rcm(output.file, skip=i, n=1)
+    out = read.rcm.dmm(output.file, skip=i, n=1)
     phy = read.newick(text=out$newick)
 
     model = .Call(
@@ -203,6 +204,7 @@ make.rcm.dmm.from.sample = function(i, output.file)
         length(out$dirichlet.prior),
         out$r,
         out$pars[1, 3],
+        out$dirichlet.prior,
         out$stateid[1, ])
 
     # align tip state indices to rows of dens.* objects
