@@ -318,8 +318,10 @@ SEXP rcm_dmm_model_init(
 
     BETASUM = 0;
     LGAMMA_BETASUM = 0;
-    BETA = calloc(INTEGER(p)[0], sizeof(double));
-    LGAMMA_BETA = calloc(INTEGER(p)[0], sizeof(double));
+    if (!BETA)
+        BETA = calloc(INTEGER(p)[0], sizeof(double));
+    if (!LGAMMA_BETA)
+        LGAMMA_BETA = calloc(INTEGER(p)[0], sizeof(double));
     for (j = 0; j < INTEGER(p)[0]; ++j)
     {
         BETASUM += REAL(beta)[j];
