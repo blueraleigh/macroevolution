@@ -1126,8 +1126,8 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP prior_only)
                     w = (nodestate[node->anc->index] != k) ? log(pij * DCLK(j, node)) :
                         log(pii * DCLK(j, node));
                 else
-                    w = (nodestate[node->anc->index] != k) ? -log(pij * r_max) :
-                        -log(pii * r_max);
+                    w = (nodestate[node->anc->index] != k) ? log(pij / (double)r_max) :
+                        log(pii / (double)r_max);
 
                 g = -log(-log(unif_rand()));
 
