@@ -1035,30 +1035,30 @@ SEXP rcm_marginal_asr(SEXP model)
 }
 
 
-/* Stochastic character maps */
+/* Simulate internal node states using stochastic character mapping */
 
-SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
+SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP prior_only)
 {
     int i;
     int k;
+    int z;
     int n;
     int r;
     int r_max;
+    int prior = INTEGER(prior_only)[0];  // ignore data at the tips
     struct rcm_state *j;
     struct rcm_statelist *sl;
     struct node *node;
     struct rcm *m = (struct rcm *)R_ExternalPtrAddr(model);
-    double norm;
-    double u;
+    double g;
+    double w;
+    double wmax;
     double D;
     double pii;
     double pij;
 
     int *nodestate;
     SEXP NodeState;
-
-    int *count;
-    SEXP result;
 
     sl = &m->sl;
     r = sl->len - 1;
@@ -1069,69 +1069,82 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
 
     n = INTEGER(nmaps)[0];
 
-    NodeState = PROTECT(allocVector(INTSXP, m->phy->nnode));
+    NodeState = PROTECT(allocMatrix(INTSXP, m->phy->nnode, n));
     nodestate = INTEGER(NodeState);
-
-    result = PROTECT(allocVector(INTSXP, n * r * r));
-    count = INTEGER(result);
-
-    memset(count, 0, n * r * r * sizeof(int));
 
     GetRNGstate();
 
     for (i = 0; i < n; ++i)
     {
+        wmax = -HUGE_VAL;
         phy_traverse_prepare(m->phy, m->phy->root, ALL_NODES, PREORDER);
         node = phy_traverse_step(m->phy);
 
-        norm = 0;
-        for (j = sl->head; j != NULL; j = j->next)
-            norm += DCLK(j, node);
-        u = unif_rand() * norm;
-        for (j = sl->head, k = 0; j != NULL; j = j->next, ++k)
+        for (j = sl->head, k = 1; j != NULL; j = j->next, ++k)
         {
-            u -= DCLK(j, node);
-            if (u <= 0)
+            // we want to sample a new state from the distribution
+            //
+            // exp(w) / sum(exp(w))
+            //
+            // where w is the conditional likelihood
+            //
+            // we do this in one pass by computing
+            //
+            // argmax w + g,
+            //
+            // where g is a Gumbel(0, 1) random variate
+            //
+            // for why this works see:
+            // https://timvieira.github.io/blog/post/2014/07/31/gumbel-max-trick/
+            // or
+            // https://arxiv.org/pdf/1706.04161.pdf
+
+            w = (!prior) ? log(DCLK(j, node)) : -log(r_max);
+
+            // Gumbel(0,1) random variate
+            g = -log(-log(unif_rand()));
+
+            if ((g + w) > wmax)
             {
-                nodestate[node->index] = k;
-                break;
+                wmax = g + w;
+                z = k;
             }
         }
 
+        nodestate[node->index + i * m->phy->nnode] = z;
+
         while ((node = phy_traverse_step(m->phy)) != 0)
         {
+            wmax = -HUGE_VAL;
             D = exp(-r_max * m->rate * node->brlen);
             pij = (1 - D) / (double)r_max;
             pii = pij + D;
-            norm = 0;
-            for (j = sl->head, k = 0; j != NULL; j = j->next, ++k)
+
+            for (j = sl->head, k = 1; j != NULL; j = j->next, ++k)
             {
-                norm += (nodestate[node->anc->index] != k) ?
-                    DCLK(j, node) * pij : DCLK(j, node) * pii;
-            }
-            u = unif_rand() * norm;
-            for (j = sl->head, k = 0; j != NULL; j = j->next, ++k)
-            {
-                u -= (nodestate[node->anc->index] != k) ?
-                    DCLK(j, node) * pij : DCLK(j, node) * pii;
-                if (u <= 0)
+                if (!prior)
+                    w = (nodestate[node->anc->index] != k) ? log(pij * DCLK(j, node)) :
+                        log(pii * DCLK(j, node));
+                else
+                    w = (nodestate[node->anc->index] != k) ? -log(pij * r_max) :
+                        -log(pii * r_max);
+
+                g = -log(-log(unif_rand()));
+
+                if ((g + w) > wmax)
                 {
-                    nodestate[node->index] = k;
-                    break;
+                    wmax = g + w;
+                    z = k;
                 }
             }
 
-            if (nodestate[node->index] != nodestate[node->anc->index])
-            {
-                count[nodestate[node->anc->index] + r * nodestate[node->index]
-                    + r * r * i] += 1;
-            }
+            nodestate[node->index + i * m->phy->nnode] = z;
         }
     }
 
     PutRNGstate();
-    UNPROTECT(2);
-    return result;
+    UNPROTECT(1);
+    return NodeState;
 }
 
 
