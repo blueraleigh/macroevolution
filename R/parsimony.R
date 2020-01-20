@@ -1,6 +1,6 @@
 prepare.downpass = function(phy, data, levels, ambig) {
     I = rep(1L, Ntip(phy))
-
+    stopifnot(!is.null(names(data)))
     if (missing(levels))
     {
         stopifnot(class(data) == "integer")
