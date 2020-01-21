@@ -1064,8 +1064,11 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP prior_only)
     r = sl->len - 1;
     r_max = sl->r;
 
-    if (r < r_max)
-        ++r;
+    if (r == r_max)
+    {
+        // there are zero non-analog states
+        r = r_max - 1;
+    }
 
     n = INTEGER(nmaps)[0];
 
@@ -1126,8 +1129,8 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP prior_only)
                     w = (nodestate[node->anc->index] != k) ? log(pij * DCLK(j, node)) :
                         log(pii * DCLK(j, node));
                 else
-                    w = (nodestate[node->anc->index] != k) ? log(pij / (double)r_max) :
-                        log(pii / (double)r_max);
+                    w = (nodestate[node->anc->index] != k) ? log(pij) :
+                        log(pii);
 
                 g = -log(-log(unif_rand()));
 
