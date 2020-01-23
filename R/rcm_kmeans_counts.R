@@ -8,19 +8,19 @@ make.rcm.kmeans.counts = function(phy, x, r, stateid.init, rate.init)
     x = aggregate(x[, 3L] ~ x[, 2L] + x[, 1L], FUN=sum)[, c(2L,1L,3L)]
     tips = match(x[, 1L], tiplabels(phy))
     x = x[!is.na(tips), ]
-    rnames = as.character(unique(x[, 2L]))
+    x = do.call(function(...) rbind(..., make.row.names=FALSE),
+            split(x, x[, 1L])[tiplabels(phy)])
+    counts = xtabs(x[, 3] ~ x[, 1] + x[, 2])
+    counts = counts[tiplabels(phy), ]
+    rnames = colnames(counts)
     tips = match(x[, 1L], tiplabels(phy))
     cats = match(x[, 2L], rnames)
     cnts = as.integer(x[, 3L])
     x = cbind(tips, cats, cnts)
-    x[, 1L] = x[, 1L] - 1L
-    x[, 2L] = x[, 2L] - 1L
     storage.mode(x) = "integer"
 
     r = as.integer(r)
     p = length(rnames)
-
-    counts = xtabs(x[, 3] ~ x[, 1] + x[, 2])
 
     f = (floor((Nnode(phy) - 1) / r) + 1) / (Nnode(phy) - 1)
     rate.max = -log((f*r - 1) / (r - 1)) / (r * mean(brlens(phy)[-root(phy)]))
@@ -164,4 +164,36 @@ read.rcm.kmeans.counts = function(output.file, skip=0, n=-1)
     }
 
     return (NULL)
+}
+
+
+make.rcm.kmeans.counts.from.sample = function(i, output.file)
+{
+    out = read.rcm.kmeans.counts(output.file, skip=i, n=1)
+    phy = read.newick(text=out$newick)
+
+    counts = xtabs(out$dataset[, 3] ~ out$dataset[, 1] + out$dataset[, 2])
+
+    model = .Call(
+        rcm_kmeans_counts_model_init,
+        phy,
+        counts,
+        ncol(counts),
+        out$r,
+        out$pars[1, 3],
+        out$stateid[1, ])
+
+    asr = .Call(rcm_marginal_asr, model)
+
+    smap = function(n, prior=FALSE)
+    {
+        stopifnot(as.integer(n) > 0)
+        return (.Call(rcm_stochastic_map, as.integer(n), model, as.integer(prior)))
+    }
+
+    expected.counts = structure(t(.Call(rcm_stochastic_map_expected_counts, model))
+        , dimnames=list(NULL, c("posterior", "prior")))
+
+    return (list(asr=asr, smap=smap, tip.state=out$stateid[1,],
+        expected.counts=expected.counts))
 }
