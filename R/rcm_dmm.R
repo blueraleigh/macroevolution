@@ -162,6 +162,11 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
 
     nlines = file.sz / line.sz
 
+    phy = read.newick(text=newick)
+
+    #dataset = data.frame(predator=tiplabels(phy)[dataset[, 1] + 1],
+    #    prey=rnames[dataset[, 2] + 1], count=dataset[, 3], stringsAsFactors=FALSE)
+
     if (skip > 0)
     {
         skip = min(skip, nlines)
@@ -185,7 +190,7 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
         }
 
         return (list(r=r, pars=pars, stateid=stateid,
-            dirichlet.prior=dprior, dataset=dataset, newick=newick))
+            dirichlet.prior=dprior, dataset=dataset, phy=phy))
     }
 
     return (NULL)
@@ -195,11 +200,10 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
 make.rcm.dmm.from.sample = function(i, output.file)
 {
     out = read.rcm.dmm(output.file, skip=i, n=1)
-    phy = read.newick(text=out$newick)
 
     model = .Call(
         rcm_dmm_model_init,
-        phy,
+        out$phy,
         out$dataset,
         length(out$dirichlet.prior),
         out$r,

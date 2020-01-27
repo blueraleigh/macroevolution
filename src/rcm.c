@@ -848,28 +848,32 @@ SEXP rcm_posterior_coincidence(SEXP stateid)
     int i;
     int j;
     int k;
-    int n = INTEGER(getAttrib(stateid, R_DimSymbol))[0];
-    int m = INTEGER(getAttrib(stateid, R_DimSymbol))[1];
-    int *a = INTEGER(stateid);
+    int item;
+    double *rho;
+    int *partition = INTEGER(stateid);
+    int nrow = INTEGER(getAttrib(stateid, R_DimSymbol))[0];
+    int ntip = INTEGER(getAttrib(stateid, R_DimSymbol))[1];
+    int nelem = 0.5 * ntip * (ntip-1);
 
-    SEXP RHO = PROTECT(allocMatrix(REALSXP, m, m));
-    double *rho = REAL(RHO);
-    memset(rho, 0, m * m * sizeof(double));
+    SEXP RHO = PROTECT(allocVector(REALSXP, nelem));
+    rho = REAL(RHO);
+    memset(rho, 0, nelem * sizeof(double));
 
-    for (i = 0; i < n; ++i)
+    for (i = 0; i < nrow; ++i)
     {
-        for (j = 0; j < (m-1); ++j)
+        item = 0;
+        for (j = 0; j < (ntip-1); ++j)
         {
-            for (k = (j+1); k < m; ++k)
+            for (k = (j+1); k < ntip; ++k)
             {
-                if (a[i + j*n] == a[i + k*n])
-                {
-                    rho[j + k * m] += 1 / (double)n;
-                    rho[k + j * m] += 1 / (double)n;
-                }
+                if (partition[i + j * nrow] == partition[i + k * nrow])
+                    rho[item] += 1 / (double)nrow;
+                ++item;
             }
         }
     }
+
+    //setAttrib(RHO, R_ClassSymbol, mkChar("dist"));
 
     UNPROTECT(1);
     return RHO;
