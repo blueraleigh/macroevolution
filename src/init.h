@@ -57,5 +57,7 @@ SEXP rcm_stochastic_map(SEXP, SEXP);
 SEXP rcm_dmm_posterior_multinomial(SEXP);
 SEXP rcm_expected_loss(SEXP, SEXP, SEXP);
 SEXP rcm_posterior_coincidence(SEXP);
+SEXP rcm_dmm_decomp(SEXP, SEXP, SEXP, SEXP, SEXP);
+
 
 #endif

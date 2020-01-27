@@ -379,3 +379,107 @@ SEXP rcm_dmm_posterior_multinomial(SEXP model)
     UNPROTECT(1);
     return result;
 }
+
+
+// additively decompose trait diversity over nodes
+SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
+    SEXP dist_arr, SEXP rtree)
+{
+    int i;
+    int j;
+    int k;
+    int n;
+    int p;
+    int l;
+    int z;
+    double f0;
+    double f1;
+    double f2;
+    double d;
+    double *dij = REAL(dist_arr);
+    double *prob = REAL(prob_arr);
+    int *tipstate = INTEGER(tipstate_arr);
+    int *perm = INTEGER(perm_arr);
+
+    struct node *node;
+    struct phy *phy = (struct phy *)R_ExternalPtrAddr(rtree);
+
+    int *tip1 = calloc(phy->nnode, sizeof(int));
+    int *tip2 = calloc(phy->nnode, sizeof(int));
+    int *ndesc = calloc(phy->nnode, sizeof(int));
+    double *h = calloc(phy->nnode, sizeof(double));
+
+    // number of states
+    p = INTEGER(getAttrib(prob_arr, R_DimSymbol))[0];
+
+    // number of resource categories
+    k = INTEGER(getAttrib(prob_arr, R_DimSymbol))[1];
+
+    //  perm_arr is an n by p matrix
+    n = INTEGER(getAttrib(perm_arr, R_DimSymbol))[0];
+
+    SEXP W = PROTECT(allocMatrix(REALSXP, phy->nnode - phy->ntip, n));
+    double *w = REAL(W);
+
+    for (i = 0; i < phy->ntip; ++i)
+        ndesc[i] = 1;
+
+    for (i = phy->root->index; i < phy->nnode; ++i)
+    {
+        node = phy_getnode_with_index(phy, i);
+        tip2[i] = node->lastvisit->index;
+        phy_traverse_prepare(phy, node, ALL_NODES, PREORDER);
+        while ((node = phy_traverse_step(phy)) != 0)
+        {
+            if (node->ndesc == 0)
+            {
+                tip1[i] = node->index;
+                break;
+            }
+        }
+    }
+
+
+    for (l = 0; l < n; ++l)
+    {
+        memset(h, 0, phy->nnode * sizeof(double));
+        phy_traverse_prepare(phy, phy->root, INTERNAL_NODES_ONLY, POSTORDER);
+
+        while ((node = phy_traverse_step(phy)) != 0)
+        {
+            ndesc[node->index] = ndesc[node->lfdesc->index] +
+                ndesc[node->lfdesc->next->index];
+
+            // compute quadratic entropy using manhattan distance
+            for (i = tip1[node->index]; i <= tip2[node->index]; ++i)
+            {
+                for (j = tip1[node->index]; j <= tip2[node->index]; ++j)
+                {
+                    d = dij[perm[l + tipstate[i] * n]
+                                + perm[l + tipstate[j] * n] * p];
+                    h[node->index] += (d * d) / (double)(2 * ndesc[node->index] * ndesc[node->index]);
+                }
+            }
+
+            f0 = ndesc[node->index] / (double)(phy->ntip);
+            f1 = ndesc[node->lfdesc->index] / (double)(ndesc[node->index]);
+            f2 = ndesc[node->lfdesc->next->index] / (double)(ndesc[node->index]);
+
+            w[(node->index - phy->ntip) + l * (phy->nnode - phy->ntip)] =
+                f0 * (h[node->index] - (
+                    f1 * h[node->lfdesc->index]
+                        + f2 * h[node->lfdesc->next->index]));
+        }
+    }
+
+    free(tip1);
+    free(tip2);
+    free(ndesc);
+    free(h);
+
+    UNPROTECT(1);
+    return W;
+}
+
+
+

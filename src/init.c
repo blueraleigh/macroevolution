@@ -59,6 +59,7 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(rcm_dmm_posterior_multinomial, 1),
     CALLDEF(rcm_expected_loss, 3),
     CALLDEF(rcm_posterior_coincidence, 1),
+    CALLDEF(rcm_dmm_decomp, 5),
 
     {NULL, NULL, 0}
 };
