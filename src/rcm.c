@@ -1041,7 +1041,7 @@ SEXP rcm_marginal_asr(SEXP model)
 
 /* Simulate internal node states using stochastic character mapping */
 
-SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP prior_only)
+SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
 {
     int i;
     int k;
@@ -1049,7 +1049,6 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP prior_only)
     int n;
     int r;
     int r_max;
-    int prior = INTEGER(prior_only)[0];  // ignore data at the tips
     struct rcm_state *j;
     struct rcm_statelist *sl;
     struct node *node;
@@ -1106,7 +1105,7 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP prior_only)
             // or
             // https://arxiv.org/pdf/1706.04161.pdf
 
-            w = (!prior) ? log(DCLK(j, node)) : -log(r_max);
+            w = log(DCLK(j, node));
 
             // Gumbel(0,1) random variate
             g = -log(-log(unif_rand()));
@@ -1129,12 +1128,8 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP prior_only)
 
             for (j = sl->head, k = 1; j != NULL; j = j->next, ++k)
             {
-                if (!prior)
-                    w = (nodestate[node->anc->index] != k) ? log(pij * DCLK(j, node)) :
-                        log(pii * DCLK(j, node));
-                else
-                    w = (nodestate[node->anc->index] != k) ? log(pij) :
-                        log(pii);
+                w = (nodestate[node->anc->index] != k) ? log(pij * DCLK(j, node)) :
+                    log(pii * DCLK(j, node));
 
                 g = -log(-log(unif_rand()));
 
