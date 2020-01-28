@@ -200,11 +200,13 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
 make.rcm.dmm.from.sample = function(i, output.file)
 {
     out = read.rcm.dmm(output.file, skip=i, n=1)
+    phy = out$phy
+    dataset = out$dataset
 
     model = .Call(
         rcm_dmm_model_init,
-        out$phy,
-        out$dataset,
+        phy,
+        dataset,
         length(out$dirichlet.prior),
         out$r,
         out$pars[1, 3],
