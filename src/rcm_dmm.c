@@ -409,6 +409,9 @@ SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
     int *ndesc = calloc(phy->nnode, sizeof(int));
     double *h = calloc(phy->nnode, sizeof(double));
 
+    SEXP W;
+    double *w;
+
     // number of states
     p = INTEGER(getAttrib(prob_arr, R_DimSymbol))[0];
 
@@ -418,8 +421,8 @@ SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
     //  perm_arr is an n by p matrix
     n = INTEGER(getAttrib(perm_arr, R_DimSymbol))[0];
 
-    SEXP W = PROTECT(allocMatrix(REALSXP, phy->nnode - phy->ntip, n));
-    double *w = REAL(W);
+    W = PROTECT(allocMatrix(REALSXP, phy->nnode - phy->ntip, n));
+    w = REAL(W);
 
     for (i = 0; i < phy->ntip; ++i)
         ndesc[i] = 1;
@@ -450,14 +453,14 @@ SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
             ndesc[node->index] = ndesc[node->lfdesc->index] +
                 ndesc[node->lfdesc->next->index];
 
-            // compute quadratic entropy using manhattan distance
-            for (i = tip1[node->index]; i <= tip2[node->index]; ++i)
+            // compute quadratic entropy
+            for (i = tip1[node->index]; i < tip2[node->index]; ++i)
             {
-                for (j = tip1[node->index]; j <= tip2[node->index]; ++j)
+                for (j = (i+1); j <= tip2[node->index]; ++j)
                 {
                     d = dij[perm[l + tipstate[i] * n]
                                 + perm[l + tipstate[j] * n] * p];
-                    h[node->index] += (d * d) / (double)(2 * ndesc[node->index] * ndesc[node->index]);
+                    h[node->index] += (d * d) / (double)(ndesc[node->index] * ndesc[node->index]);
                 }
             }
 
