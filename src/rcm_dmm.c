@@ -453,7 +453,8 @@ SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
             ndesc[node->index] = ndesc[node->lfdesc->index] +
                 ndesc[node->lfdesc->next->index];
 
-            // compute quadratic entropy
+            // compute expected distance btwn two terminals drawn
+            // at random from among the set descended from node
             for (i = tip1[node->index]; i < tip2[node->index]; ++i)
             {
                 for (j = (i+1); j <= tip2[node->index]; ++j)
