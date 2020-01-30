@@ -310,6 +310,9 @@ SEXP rcm_dmm_model_init(
         REAL(rate)[0],
         (struct phy *)R_ExternalPtrAddr(rtree));
 
+    if (!model)
+        error("model allocation failed.");
+
     model->push = &stat_push;
     model->push0 = &stat_push0;
     model->pop = &stat_pop;

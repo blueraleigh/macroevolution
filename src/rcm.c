@@ -710,6 +710,9 @@ struct rcm *rcm_init_start(
     struct rcm *model;
     struct node *node;
 
+    if (!phy)
+        error("passing a NULL pointer as phy object");
+
     model = malloc(sizeof(struct rcm));
 
     if (!model)
