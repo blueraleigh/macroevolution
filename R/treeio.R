@@ -174,6 +174,21 @@ descendants = function(node, phy, visit=c("ALL_NODES", "INTERNAL_NODES_ONLY"), o
 }
 
 
+#' Return the tips descended from a node
+tips = function(node, phy) {
+    stopifnot(is.tree(phy))
+    storage.mode(node) = "integer"
+    if (node <= 0 || node > Nnode(phy))
+        stop("Invalid node index")
+
+    descendants = .Call(phyr_descendants, phy, node, 0L, 0L)
+
+    descendants[descendants <= Ntip(phy)]
+
+    return (descendants[-1L])
+}
+
+
 #' Extract a clade
 #'
 #' @param phy An object of class \code{tree}.
