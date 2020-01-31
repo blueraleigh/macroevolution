@@ -1,10 +1,14 @@
 #include "rcm.h"
 
+
 /* hyperparameter on Dirichlet prior, shared by all states */
-static double BETASUM = 0;
-static double LGAMMA_BETASUM = 0;
-static double *BETA = 0;
-static double *LGAMMA_BETA = 0;
+struct hyperparam {
+    double betasum;
+    double lgamma_betasum;
+    double *beta;
+    double *lgamma_beta;
+};
+
 
 /* Sparse representation of count data */
 struct rcm_data {
@@ -159,6 +163,8 @@ struct rcm_stat {
 
     /* aggregated counts */
     int *count;
+
+    struct hyperparam *h;
 };
 
 
@@ -169,9 +175,10 @@ static void stat_free(struct rcm_stat *stat)
 }
 
 
-static struct rcm_stat *stat_alloc(int p)
+static struct rcm_stat *stat_alloc(int p, void *hyperparam)
 {
     struct rcm_stat *stat = malloc(sizeof(struct rcm_stat));
+
     if (!stat)
         error("failed to allocate memory for running stat struct.");
     stat->n = 0;
@@ -182,6 +189,7 @@ static struct rcm_stat *stat_alloc(int p)
         free(stat);
         error("failed to allocate memory for running stat struct.");
     }
+    stat->h = (struct hyperparam *)(hyperparam);
 
     return stat;
 }
@@ -195,12 +203,14 @@ static double stat_push(int index, struct rcm_data *data, struct rcm_stat *stat)
     int x;
     double plnl = 0;
 
+    struct hyperparam *h = (struct hyperparam *)(stat->h);
+
     sz = data->tsz[index];
 
     if (sz)
     {
-        plnl += lgammafn(BETASUM + stat->n) -
-            lgammafn(BETASUM + stat->n + sz);
+        plnl += lgammafn(h->betasum + stat->n) -
+            lgammafn(h->betasum + stat->n + sz);
     }
 
     data_prepare(index, data);
@@ -208,8 +218,8 @@ static double stat_push(int index, struct rcm_data *data, struct rcm_stat *stat)
     {
         j = data->cat;
         x = data->cnt;
-        plnl += lgammafn(stat->count[j] + x + BETA[j])
-            - lgammafn(stat->count[j] + BETA[j]);
+        plnl += lgammafn(stat->count[j] + x + h->beta[j])
+            - lgammafn(stat->count[j] + h->beta[j]);
         stat->count[j] += x;
     }
 
@@ -263,13 +273,15 @@ static double stat_loglk(struct rcm_stat *stat, struct rcm_data *data)
     int j;
     double loglk = 0;
 
+    struct hyperparam *h = (struct hyperparam *)(stat->h);
+
     for (j = 0; j < stat->p; ++j)
     {
-        loglk += lgammafn(stat->count[j] + BETA[j]) -
-            LGAMMA_BETA[j];
+        loglk += lgammafn(stat->count[j] + h->beta[j]) -
+            h->lgamma_beta[j];
     }
 
-    loglk += LGAMMA_BETASUM - lgammafn(stat->n + BETASUM);
+    loglk += h->lgamma_betasum - lgammafn(stat->n + h->betasum);
 
     return loglk;
 }
@@ -278,16 +290,14 @@ static double stat_loglk(struct rcm_stat *stat, struct rcm_data *data)
 void rcm_dmm_free(SEXP model)
 {
     struct rcm *m = (struct rcm *)R_ExternalPtrAddr(model);
+    struct hyperparam *h = (struct hyperparam *)(m->sl.hyperparam);
     rcm_clear(m);
     data_free(m->data);
+    free(h->beta);
+    free(h->lgamma_beta);
+    free(h);
     free(m);
     R_ClearExternalPtr(model);
-    free(BETA);
-    free(LGAMMA_BETA);
-    BETA = 0;
-    LGAMMA_BETA = 0;
-    BETASUM = 0;
-    LGAMMA_BETASUM = 0;
 }
 
 
@@ -303,6 +313,7 @@ SEXP rcm_dmm_model_init(
     int j;
     SEXP exptr;
     struct rcm *model;
+    struct hyperparam *h;
 
     model = rcm_init_start(
         INTEGER(p)[0],
@@ -319,17 +330,28 @@ SEXP rcm_dmm_model_init(
     model->data = data_alloc(INTEGER(getAttrib(data, R_DimSymbol))[0],
         INTEGER(data), model);
 
-    BETASUM = 0;
-    LGAMMA_BETASUM = 0;
-    BETA = calloc(INTEGER(p)[0], sizeof(double));
-    LGAMMA_BETA = calloc(INTEGER(p)[0], sizeof(double));
+    h = malloc(sizeof(struct hyperparam));
+
+    if (!h)
+        error("memory allocation failure");
+
+    h->betasum = 0;
+    h->lgamma_betasum = 0;
+    h->beta = calloc(INTEGER(p)[0], sizeof(double));
+    h->lgamma_beta = calloc(INTEGER(p)[0], sizeof(double));
+
+    if (!h->beta || !h->lgamma_beta)
+        error("memory allocation failure");
+
     for (j = 0; j < INTEGER(p)[0]; ++j)
     {
-        BETASUM += REAL(beta)[j];
-        BETA[j] = REAL(beta)[j];
-        LGAMMA_BETA[j] = lgammafn(REAL(beta)[j]);
+        h->betasum += REAL(beta)[j];
+        h->beta[j] = REAL(beta)[j];
+        h->lgamma_beta[j] = lgammafn(REAL(beta)[j]);
     }
-    LGAMMA_BETASUM = lgammafn(BETASUM);
+    h->lgamma_betasum = lgammafn(h->betasum);
+
+    model->sl.hyperparam = (void *)(h);
 
     model->sl.stat_loglk = &stat_loglk;
     model->sl.stat_alloc = &stat_alloc;
@@ -358,6 +380,7 @@ SEXP rcm_dmm_posterior_multinomial(SEXP model)
 
     struct rcm *m;
     struct node *node;
+    struct hyperparam *h;
 
     SEXP result;
     double *d;
@@ -370,13 +393,15 @@ SEXP rcm_dmm_posterior_multinomial(SEXP model)
     if (r < sl->r)
         ++r;
 
+    h = (struct hyperparam *)(sl->hyperparam);
+
     result = PROTECT(allocMatrix(REALSXP, r, m->p));
     d = REAL(result);
 
     for (i = sl->head, k = 0; i != NULL; i = i->next, ++k)
     {
         for (j = 0; j < m->p; ++j)
-            d[k + j*r] = i->stat->count[j] + BETA[j];
+            d[k + j*r] = i->stat->count[j] + h->beta[j];
     }
 
     UNPROTECT(1);

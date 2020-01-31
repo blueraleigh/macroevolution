@@ -30,7 +30,7 @@ static struct rcm_state *state_add(struct rcm_statelist *sl)
         state->uclk = state->sclk + sl->nnode;
         state->next = NULL;
         state->prev = NULL;
-        state->stat = sl->stat_alloc(sl->p);
+        state->stat = sl->stat_alloc(sl->p, sl->hyperparam);
 
         memset(state->mem, 0, nbytes);
 
@@ -737,6 +737,7 @@ struct rcm *rcm_init_start(
     model->sl.head      = NULL;
     model->sl.tail      = NULL;
     model->sl.fl        = NULL;
+    model->sl.hyperparam = NULL;
 
     model->phy = phy;
 
@@ -876,8 +877,6 @@ SEXP rcm_posterior_coincidence(SEXP stateid)
         }
     }
 
-    //setAttrib(RHO, R_ClassSymbol, mkChar("dist"));
-
     UNPROTECT(1);
     return RHO;
 }
@@ -897,24 +896,27 @@ SEXP rcm_expected_loss(SEXP K, SEXP stateid, SEXP rho)
     int i;
     int j;
     int k;
-    int n = INTEGER(getAttrib(stateid, R_DimSymbol))[0];
-    int m = INTEGER(getAttrib(stateid, R_DimSymbol))[1];
+    int item;
+    int nrow = INTEGER(getAttrib(stateid, R_DimSymbol))[0];
+    int ntip = INTEGER(getAttrib(stateid, R_DimSymbol))[1];
     int *a = INTEGER(stateid);
     double f = REAL(K)[0];
 
-    SEXP LOSS = PROTECT(allocVector(REALSXP, n));
+    SEXP LOSS = PROTECT(allocVector(REALSXP, nrow));
     double *loss = REAL(LOSS);
     double *r = REAL(rho);
 
-    for (i = 0; i < n; ++i)
+    for (i = 0; i < nrow; ++i)
     {
+        item = 0;
         loss[i] = 0;
-        for (j = 0; j < (m-1); ++j)
+        for (j = 0; j < (ntip-1); ++j)
         {
-            for (k = (j+1); k < m; ++k)
+            for (k = (j+1); k < ntip; ++k)
             {
-                if (a[i + j*n] == a[i + k*n])
-                    loss[i] += r[j + k * m] - f;
+                if (a[i + j*nrow] == a[i + k*nrow])
+                    loss[i] += r[item] - f;
+                ++item;
             }
         }
     }

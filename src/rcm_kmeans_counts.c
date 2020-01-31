@@ -74,7 +74,7 @@ static void stat_free(struct rcm_stat *stat)
 }
 
 
-static struct rcm_stat *stat_alloc(int p)
+static struct rcm_stat *stat_alloc(int p, void *hyperparam)
 {
     struct rcm_stat *stat = malloc(sizeof(struct rcm_stat));
     if (!stat)

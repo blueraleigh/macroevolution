@@ -75,13 +75,16 @@ struct rcm_statelist {
     struct rcm_state *fl;
 
     /* Function for state stat allocation */
-    struct rcm_stat *(*stat_alloc)(int);
+    struct rcm_stat *(*stat_alloc)(int, void *);
 
     void (*stat_free)(struct rcm_stat *);
 
     /* Function for computing marginal likelihood of data
     ** in state */
     double (*stat_loglk)(struct rcm_stat *, struct rcm_data *);
+
+    /* hyperparameter info if applicable */
+    void *hyperparam;
 };
 
 
