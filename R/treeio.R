@@ -183,9 +183,7 @@ tips = function(node, phy) {
 
     descendants = .Call(phyr_descendants, phy, node, 0L, 0L)
 
-    descendants[descendants <= Ntip(phy)]
-
-    return (descendants[-1L])
+    descendants = descendants[-1L]
 }
 
 
