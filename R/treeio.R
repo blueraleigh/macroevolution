@@ -225,6 +225,23 @@ keep.tip = function(phy, tip) {
 }
 
 
+#' Prune a phylogeny
+#'
+#' @param phy An object of class \code{tree}.
+#' @param tip A vector of terminal taxa labels
+#' @return An object of class \code{tree} containing only those terminal taxa
+#' not among the set specified by \code{tip}.
+drop.tip = function(phy, tip) {
+    stopifnot(is.tree(phy))
+    stopifnot(class(tip) == "character")
+    tips = which(!tiplabels(phy) %in% tips)
+    ntip = length(tips)
+    subtree = .Call(phyr_extract_subtree, phy, ntip, tips)
+    class(subtree) = "tree"
+    return (subtree)
+}
+
+
 #' Determine if a phylogeny is strictly bifurcating
 #'
 #' @param phy An object of class \code{tree}.
