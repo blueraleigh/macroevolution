@@ -184,6 +184,8 @@ tips = function(node, phy) {
     descendants = .Call(phyr_descendants, phy, node, 0L, 0L)
 
     descendants = descendants[-1L]
+
+    return (descendants[descendants <= Ntip(phy)])
 }
 
 
