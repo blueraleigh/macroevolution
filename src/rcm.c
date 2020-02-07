@@ -1044,9 +1044,16 @@ SEXP rcm_marginal_asr(SEXP model)
 }
 
 
-/* Simulate internal node states using stochastic character mapping */
+/* Simulate internal node states using stochastic character mapping
+**
+** Optionally pass an R function to evaluate on each branch. The function
+** is expected to take only three arguments: the ancestral and descendant
+** states, and the node index. What the function does with these states is
+** up to the user, but any results should be stored within the
+** function's closure environment.
+*/
 
-SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
+SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP FUN, SEXP rho)
 {
     int i;
     int k;
@@ -1054,6 +1061,9 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
     int n;
     int r;
     int r_max;
+    int call_r = 0;
+    int nprotect = 1;
+    int *iargs;
     struct rcm_state *j;
     struct rcm_statelist *sl;
     struct node *node;
@@ -1067,6 +1077,8 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
 
     int *nodestate;
     SEXP NodeState;
+    SEXP R_fcall;
+    SEXP args;
 
     sl = &m->sl;
     r = sl->len - 1;
@@ -1082,6 +1094,21 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
 
     NodeState = PROTECT(allocMatrix(INTSXP, m->phy->nnode, n));
     nodestate = INTEGER(NodeState);
+
+    if (!isNull(FUN))
+    {
+        if (!isFunction(FUN))
+            error("'FUN' must be a function");
+
+        if (!isEnvironment(rho))
+            error("'rho' should be an environment");
+
+        call_r = 1;
+        R_fcall = PROTECT(lang2(FUN, R_NilValue));
+        args = PROTECT(allocVector(INTSXP, 3));
+        iargs = INTEGER(args);
+        nprotect += 2;
+    }
 
     GetRNGstate();
 
@@ -1146,11 +1173,20 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
             }
 
             nodestate[node->index + i * m->phy->nnode] = z;
+
+            if (call_r)
+            {
+                iargs[0] = node->index + 1;
+                iargs[1] = nodestate[node->anc->index + i * m->phy->nnode];
+                iargs[2] = nodestate[node->index + i * m->phy->nnode];
+                SETCADR(R_fcall, args);
+                eval(R_fcall, rho);
+            }
         }
     }
 
     PutRNGstate();
-    UNPROTECT(1);
+    UNPROTECT(nprotect);
     return NodeState;
 }
 

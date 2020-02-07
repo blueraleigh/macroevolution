@@ -226,10 +226,13 @@ make.rcm.dmm.from.sample = function(i, output.file)
         sweep(dirichlet.pars - 1, 1, rowSums(dirichlet.pars - 1), "/")
         , dimnames=list(NULL, names(out$dirichlet.prior)))
 
-    smap = function(n)
+    smap = function(n, FUN=NULL)
     {
         stopifnot(as.integer(n) > 0)
-        return (.Call(rcm_stochastic_map, as.integer(n), model))
+        if (is.null(FUN))
+            return (.Call(rcm_stochastic_map, as.integer(n), model, NULL, NULL))
+        else
+            return (.Call(rcm_stochastic_map, as.integer(n), model, FUN, new.env()))
     }
 
     expected.counts = structure(t(.Call(rcm_stochastic_map_expected_counts, model))
