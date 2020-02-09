@@ -1044,16 +1044,9 @@ SEXP rcm_marginal_asr(SEXP model)
 }
 
 
-/* Simulate internal node states using stochastic character mapping
-**
-** Optionally pass an R function to evaluate on each branch. The function
-** is expected to take only three arguments: the ancestral and descendant
-** states, and the node index. What the function does with these states is
-** up to the user, but any results should be stored within the
-** function's closure environment.
-*/
+/* Simulate internal node states using stochastic character mapping */
 
-SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP FUN, SEXP rho)
+SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
 {
     int i;
     int k;
@@ -1061,9 +1054,6 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP FUN, SEXP rho)
     int n;
     int r;
     int r_max;
-    int call_r = 0;
-    int nprotect = 1;
-    int *iargs;
     struct rcm_state *j;
     struct rcm_statelist *sl;
     struct node *node;
@@ -1077,8 +1067,6 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP FUN, SEXP rho)
 
     int *nodestate;
     SEXP NodeState;
-    SEXP R_fcall;
-    SEXP args;
 
     sl = &m->sl;
     r = sl->len - 1;
@@ -1095,74 +1083,49 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP FUN, SEXP rho)
     NodeState = PROTECT(allocMatrix(INTSXP, m->phy->nnode, n));
     nodestate = INTEGER(NodeState);
 
-    if (!isNull(FUN))
-    {
-        if (!isFunction(FUN))
-            error("'FUN' must be a function");
-
-        if (!isEnvironment(rho))
-            error("'rho' should be an environment");
-
-        call_r = 1;
-        R_fcall = PROTECT(lang2(FUN, R_NilValue));
-        args = PROTECT(allocVector(INTSXP, 3));
-        iargs = INTEGER(args);
-        nprotect += 2;
-    }
-
     GetRNGstate();
 
-    for (i = 0; i < n; ++i)
+    phy_traverse_prepare(m->phy, m->phy->root, ALL_NODES, PREORDER);
+
+    while ((node = phy_traverse_step(m->phy)) != 0)
     {
-        wmax = -HUGE_VAL;
-        phy_traverse_prepare(m->phy, m->phy->root, ALL_NODES, PREORDER);
-        node = phy_traverse_step(m->phy);
+        D = exp(-r_max * m->rate * node->brlen);
+        pij = (1 - D) / (double)r_max;
+        pii = pij + D;
 
-        for (j = sl->head, k = 1; j != NULL; j = j->next, ++k)
-        {
-            // we want to sample a new state from the distribution
-            //
-            // exp(w) / sum(exp(w))
-            //
-            // where w is the conditional likelihood
-            //
-            // we do this in one pass by computing
-            //
-            // argmax w + g,
-            //
-            // where g is a Gumbel(0, 1) random variate
-            //
-            // for why this works see:
-            // https://timvieira.github.io/blog/post/2014/07/31/gumbel-max-trick/
-            // or
-            // https://arxiv.org/pdf/1706.04161.pdf
-
-            w = log(DCLK(j, node));
-
-            // Gumbel(0,1) random variate
-            g = -log(-log(unif_rand()));
-
-            if ((g + w) > wmax)
-            {
-                wmax = g + w;
-                z = k;
-            }
-        }
-
-        nodestate[node->index + i * m->phy->nnode] = z;
-
-        while ((node = phy_traverse_step(m->phy)) != 0)
+        for (i = 0; i < n; ++i)
         {
             wmax = -HUGE_VAL;
-            D = exp(-r_max * m->rate * node->brlen);
-            pij = (1 - D) / (double)r_max;
-            pii = pij + D;
-
             for (j = sl->head, k = 1; j != NULL; j = j->next, ++k)
             {
-                w = (nodestate[node->anc->index + i * m->phy->nnode] != k) ?
-                        log(pij * DCLK(j, node)) : log(pii * DCLK(j, node));
+                // we want to sample a new state from the distribution
+                //
+                // exp(w) / sum(exp(w))
+                //
+                // where w is the conditional log likelihood
+                //
+                // we do this in one pass by computing
+                //
+                // argmax w + g,
+                //
+                // where g is a Gumbel(0, 1) random variate
+                //
+                // for why this works see:
+                // https://timvieira.github.io/blog/post/2014/07/31/gumbel-max-trick/
+                // or
+                // https://arxiv.org/pdf/1706.04161.pdf
 
+                if (node->anc)
+                {
+                    w = (nodestate[node->anc->index + i * m->phy->nnode] != k) ?
+                        log(pij * DCLK(j, node)) : log(pii * DCLK(j, node));
+                }
+                else
+                {
+                    w = log(DCLK(j, node));
+                }
+
+                // Gumbel(0,1) random variate
                 g = -log(-log(unif_rand()));
 
                 if ((g + w) > wmax)
@@ -1173,22 +1136,91 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model, SEXP FUN, SEXP rho)
             }
 
             nodestate[node->index + i * m->phy->nnode] = z;
-
-            if (call_r)
-            {
-                iargs[0] = node->index + 1;
-                iargs[1] = nodestate[node->anc->index + i * m->phy->nnode];
-                iargs[2] = nodestate[node->index + i * m->phy->nnode];
-                SETCADR(R_fcall, args);
-                eval(R_fcall, rho);
-            }
         }
     }
 
     PutRNGstate();
-    UNPROTECT(nprotect);
+    UNPROTECT(1);
     return NodeState;
 }
+
+
+// probability of i -> j transition along node's branch
+SEXP rcm_pij(SEXP marg, SEXP model)
+{
+    struct rcm *m = (struct rcm *)R_ExternalPtrAddr(model);
+    struct node *d;
+    struct node *p;
+
+    double *marg_p = REAL(marg);
+    int r_max = m->r;
+    int r;
+    double norm;
+    double D;
+    double pij;
+    double pii;
+    double mp;
+
+    int i;
+    int j;
+    int k;
+    struct rcm_state *from;
+    struct rcm_state *to;
+    struct rcm_statelist *sl;
+
+    double *P_ij;
+    SEXP result = PROTECT(allocVector(VECSXP, m->phy->nnode));
+
+    sl = &m->sl;
+
+    r = sl->len - 1;
+
+    if (r < sl->r)
+        ++r;
+
+    double prob[r];
+
+    for (i = 0; i < m->phy->nnode; ++i)
+        SET_VECTOR_ELT(result, i, allocMatrix(REALSXP, r, r));
+
+    memset(REAL(VECTOR_ELT(result, m->phy->root->index)), 0, r * r * sizeof(double));
+
+    phy_traverse_prepare(m->phy, m->phy->root, ALL_NODES, PREORDER);
+    phy_traverse_step(m->phy);
+
+    while ((d = phy_traverse_step(m->phy)) != 0)
+    {
+        P_ij = REAL(VECTOR_ELT(result, d->index));
+        p = d->anc;
+
+        D = exp(-r_max * m->rate * d->brlen);
+        pij = (1 - D) / (double)r_max;
+        pii = pij + D;
+
+        for (from = sl->head, i = 0; from != NULL; from = from->next, ++i)
+        {
+            mp = marg_p[i + (p->index - m->phy->ntip) * r];
+            norm = 0;
+
+            for (to = sl->head, j = 0; to != NULL; to = to->next, ++j)
+            {
+                if (i != j)
+                    prob[j] = pij * DCLK(to, d);
+                else
+                    prob[j] = pii * DCLK(to, d);
+
+                norm += prob[j];
+            }
+
+            for (to = sl->head, j = 0; to != NULL; to = to->next, ++j)
+                P_ij[i + j * r] = mp * (prob[j] / norm);
+        }
+    }
+
+    UNPROTECT(1);
+    return result;
+}
+
 
 
 /* Simulation free stochastic character maps. Compute expected number of
