@@ -1145,7 +1145,17 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
 }
 
 
-// probability of i -> j transition along node's branch
+/* Compute P(X(v)=j, X(u)=i | D), where u is an parental node, v a daughter
+** node, X(.) denotes the state of a node, and D denotes the data at the tips
+** of the tree.
+**
+** P(X(v)=j, X(u)=i | D) = P(X(v)=j | X(u)=i, D) P(X(u)=i | D)
+**
+** We take P(X(u)=i | D) to be the marginal probability that X(u)=i, computed
+** using the normal marginal ancestral state probability procedure, and we
+** compute P(X(v)=j | X(u)=i, D) using the normal stochastic character mapping
+** procedure described by Nielsen 2002.
+*/
 SEXP rcm_pij(SEXP marg, SEXP model)
 {
     struct rcm *m = (struct rcm *)R_ExternalPtrAddr(model);
