@@ -409,7 +409,21 @@ SEXP rcm_dmm_posterior_multinomial(SEXP model)
 }
 
 
-// additively decompose trait diversity over nodes
+/* Additively decompose trait diversity over nodes sensu
+** Pavoine et al. 2010. Ecological Monographs 80(3): 485-207
+** where
+**
+**    tipstate_arr is an integer vector of state id's for the terminals
+**
+**    prob_arr is a matrix of multinomials corresponding to each state
+**
+**    perm_arr is a matrix each row containing a permutation order for the
+**      rows in prob_arr
+**
+**    dist_arr is a distance matrix between the rows of prob_arr
+**
+**    rtree is a pointer to the phylogeny
+*/
 SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
     SEXP dist_arr, SEXP rtree)
 {
@@ -514,4 +528,217 @@ SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
 }
 
 
+/* Computes the optimal transport matrix between two discrete
+** probability distributions using the Sinkhorn-Knopp algorithm
+** where
+**
+**    N is the number of categories in each distribution
+**    r and c are the two distributions
+**    P is the optimal transport matrix
+**
+** Implicitly assumes a 0,1 cost scheme. I.e., transforming a
+** unit of i into a unit of j costs 1 when i != j and 0 otherwise.
+** Under this cost scheme the optimal cost (minimum cost) to
+** transfrom r into c is equal 1/2 the L1 norm, and this function
+** computes the transport matrix P that achieves this. P has the
+** property that row sums equal r and column sums equal c, and
+** each i,j element can be thought of as how much of r[i] is
+** transferred to c[j].
+*/
+void wasserstein(int *N, double *r, double *c, double *P)
+{
+    int i;
+    int j;
+    int n = *N;
 
+    // regularization
+    double lambda = 10;
+
+    // implicit 0,1 cost scheme
+    double d = exp(-lambda);
+    double norm = n + (n * (n-1)) * d;
+    double pij = d / norm;
+    double pii = 1 / norm;
+    double diff;
+    double maxdiff;
+
+    // rowsums
+    double u[n];
+
+    // colsums
+    double v[n];
+
+    double wkspc[n];
+
+    for (i = 0; i < n; ++i)
+        P[i + i * n] = pii;
+
+    for (i = 0; i < (n-1); ++i)
+    {
+        for (j = (i+1); j < n; ++j)
+            P[i + j * n] = P[j + i * n] = pij;
+    }
+
+    // P now sums to 1
+
+    #define do_rowsums(u)               \
+    do {                                \
+        for (i = 0; i < n; ++i)         \
+        {                               \
+            (u)[i] = 0;                   \
+            for (j = 0; j < n; ++j)     \
+                (u)[i] += P[i + j*n];     \
+        }                               \
+    } while (0)
+
+    #define do_colsums                  \
+    do {                                \
+        for (j = 0; j < n; ++j)         \
+        {                               \
+            v[j] = 0;                   \
+            for (i = 0; i < n; ++i)     \
+                v[j] += P[i + j*n];     \
+        }                               \
+    } while (0)
+
+    #define scale_rowsums                       \
+    do {                                        \
+        for (j = 0; j < n; ++j)                 \
+        {                                       \
+            for (i = 0; i < n; ++i)             \
+            {                                   \
+                if (u[i] > 0)                   \
+                    P[i + j*n] *= r[i]/u[i];    \
+            }                                   \
+        }                                       \
+    } while (0)
+
+    #define scale_colsums                       \
+    do {                                        \
+        for (i = 0; i < n; ++i)                 \
+        {                                       \
+            for (j = 0; j < n; ++j)             \
+            {                                   \
+                if (v[j] > 0)                   \
+                    P[i + j*n] *= c[j]/v[j];    \
+            }                                   \
+        }                                       \
+    } while (0)
+
+    #define do_maxdiff                      \
+    do {                                    \
+        for (i = 0; i < n; ++i)             \
+        {                                   \
+            diff = fabs(wkspc[i] - u[i]);   \
+            if (diff > maxdiff)             \
+                maxdiff = diff;             \
+        }                                   \
+    } while(0)
+
+    do {
+        maxdiff = 0;
+        do_rowsums(u);
+        scale_rowsums;
+        do_colsums;
+        scale_colsums;
+        do_rowsums(wkspc);
+        do_maxdiff;
+    } while (maxdiff > 1e-8);
+}
+
+
+/* Computes the average optimal transport matrix on each branch
+** of the phylogeny where
+**
+**   pij is the result from rcm_pij giving the probability of
+**   each ancestor-descendant state condition for each branch
+**
+**   prob is the matrix of multinomials for each state
+**
+**   rtree is the phylogeny
+**
+** Note that each state is expected to stored as a column
+** in prob whereas they are stored as rows in the R object
+** that summarizes a posterior sample, meaning that matrix
+** will need to be transposed prior to passing to this
+** function. */
+SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP rtree)
+{
+    int i;
+    int j;
+    int k;
+    int ndim;
+    int nstate;
+    double weight;
+    double *Pr;
+    double *Pij;
+    double *flux;
+    struct phy *phy;
+    struct node *d;
+
+    SEXP Flux;
+
+    phy = (struct phy *)R_ExternalPtrAddr(rtree);
+
+    // number of multinomials
+    nstate = INTEGER(getAttrib(prob, R_DimSymbol))[1];
+
+    // number of categories in each multinomial
+    ndim = INTEGER(getAttrib(prob, R_DimSymbol))[0];
+
+    Pr = REAL(prob);
+
+    phy_traverse_prepare(phy, phy->root, ALL_NODES, PREORDER);
+    phy_traverse_step(phy);
+
+    Flux = PROTECT(allocVector(VECSXP, phy->nnode));
+
+    SET_VECTOR_ELT(Flux, phy->root->index, allocMatrix(REALSXP, ndim, ndim));
+    memset(REAL(VECTOR_ELT(Flux, phy->root->index)),
+        0, ndim*ndim*sizeof(double));
+
+    double U[ndim * ndim];
+
+    while ((d = phy_traverse_step(phy)) != 0)
+    {
+        SET_VECTOR_ELT(Flux, d->index, allocMatrix(REALSXP, ndim, ndim));
+
+        Pij = REAL(VECTOR_ELT(pij, d->index));
+        flux = REAL(VECTOR_ELT(Flux, d->index));
+
+        memset(flux, 0, ndim*ndim*sizeof(double));
+
+        weight = 0;
+
+        for (i = 0; i < (nstate-1); ++i)
+        {
+            for (j = (i+1); j < nstate; ++j)
+            {
+                if (Pij[i + j * nstate] > 1e-3)
+                {
+                    weight += Pij[i + j * nstate];
+                    wasserstein(&ndim, Pr + i*ndim, Pr + j*ndim, U);
+                    for (k = 0; k < ndim*ndim; ++k)
+                        flux[k] += Pij[i + j * nstate] * U[k];
+                }
+
+                if (Pij[j + i * nstate] > 1e-3)
+                {
+                    weight += Pij[j + i * nstate];
+                    wasserstein(&ndim, Pr + j*ndim, Pr + i*ndim, U);
+                    for (k = 0; k < ndim*ndim; ++k)
+                        flux[k] += Pij[j + i * nstate] * U[k];
+                }
+            }
+        }
+
+        if (weight > 0)
+        {
+            for (k = 0; k < ndim*ndim; ++k)
+                flux[k] /= weight;
+        }
+    }
+
+    UNPROTECT(1);
+    return Flux;
+}

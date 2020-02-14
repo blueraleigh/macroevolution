@@ -61,6 +61,7 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(rcm_posterior_coincidence, 1),
     CALLDEF(rcm_dmm_decomp, 5),
     CALLDEF(rcm_pij, 2),
+    CALLDEF(rcm_dmm_doflux, 3),
 
     {NULL, NULL, 0}
 };
