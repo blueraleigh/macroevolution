@@ -535,30 +535,26 @@ SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
 **    N is the number of categories in each distribution
 **    r and c are the two distributions
 **    P is the optimal transport matrix
+**    M is the cost matrix
 **
-** Implicitly assumes a 0,1 cost scheme. I.e., transforming a
-** unit of i into a unit of j costs 1 when i != j and 0 otherwise.
-** Under this cost scheme the optimal cost (minimum cost) to
+** Under a 0,1 cost scheme the optimal cost (minimum cost) to
 ** transfrom r into c is equal 1/2 the L1 norm, and this function
 ** computes the transport matrix P that achieves this. P has the
 ** property that row sums equal r and column sums equal c, and
 ** each i,j element can be thought of as how much of r[i] is
 ** transferred to c[j].
 */
-void wasserstein(int *N, double *r, double *c, double *P)
+void wasserstein(int *N, double *r, double *c, double *P, double *M)
 {
     int i;
     int j;
     int n = *N;
+    int nelem = n*n;
 
     // regularization
     double lambda = 10;
 
-    // implicit 0,1 cost scheme
-    double d = exp(-lambda);
-    double norm = n + (n * (n-1)) * d;
-    double pij = d / norm;
-    double pii = 1 / norm;
+    double norm = 0;
     double diff;
     double maxdiff;
 
@@ -570,14 +566,14 @@ void wasserstein(int *N, double *r, double *c, double *P)
 
     double wkspc[n];
 
-    for (i = 0; i < n; ++i)
-        P[i + i * n] = pii;
-
-    for (i = 0; i < (n-1); ++i)
+    for (i = 0; i < nelem; ++i)
     {
-        for (j = (i+1); j < n; ++j)
-            P[i + j * n] = P[j + i * n] = pij;
+        P[i] = exp(-lambda * M[i]);
+        norm += P[i];
     }
+
+    for (i = 0; i < nelem; ++i)
+        P[i] /= norm;
 
     // P now sums to 1
 
@@ -655,6 +651,9 @@ void wasserstein(int *N, double *r, double *c, double *P)
 **
 **   prob is the matrix of multinomials for each state
 **
+**   cost is the cost matrix for tranforming a unit of category i
+**   into a unit of category j
+**
 **   rtree is the phylogeny
 **
 ** Note that each state is expected to stored as a column
@@ -662,7 +661,7 @@ void wasserstein(int *N, double *r, double *c, double *P)
 ** that summarizes a posterior sample, meaning that matrix
 ** will need to be transposed prior to passing to this
 ** function. */
-SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP rtree)
+SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP cost, SEXP rtree)
 {
     int i;
     int j;
@@ -670,6 +669,7 @@ SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP rtree)
     int ndim;
     int nstate;
     double weight;
+    double *M;
     double *Pr;
     double *Pij;
     double *flux;
@@ -687,6 +687,8 @@ SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP rtree)
     ndim = INTEGER(getAttrib(prob, R_DimSymbol))[0];
 
     Pr = REAL(prob);
+
+    M = REAL(cost);
 
     phy_traverse_prepare(phy, phy->root, ALL_NODES, PREORDER);
     phy_traverse_step(phy);
@@ -717,7 +719,7 @@ SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP rtree)
                 if (Pij[i + j * nstate] > 1e-3)
                 {
                     weight += Pij[i + j * nstate];
-                    wasserstein(&ndim, Pr + i*ndim, Pr + j*ndim, U);
+                    wasserstein(&ndim, Pr + i*ndim, Pr + j*ndim, U, M);
                     for (k = 0; k < ndim*ndim; ++k)
                         flux[k] += Pij[i + j * nstate] * U[k];
                 }
@@ -725,7 +727,7 @@ SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP rtree)
                 if (Pij[j + i * nstate] > 1e-3)
                 {
                     weight += Pij[j + i * nstate];
-                    wasserstein(&ndim, Pr + j*ndim, Pr + i*ndim, U);
+                    wasserstein(&ndim, Pr + j*ndim, Pr + i*ndim, U, M);
                     for (k = 0; k < ndim*ndim; ++k)
                         flux[k] += Pij[j + i * nstate] * U[k];
                 }

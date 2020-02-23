@@ -59,6 +59,6 @@ SEXP rcm_expected_loss(SEXP, SEXP, SEXP);
 SEXP rcm_posterior_coincidence(SEXP);
 SEXP rcm_dmm_decomp(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rcm_pij(SEXP, SEXP);
-SEXP rcm_dmm_doflux(SEXP, SEXP, SEXP);
+SEXP rcm_dmm_doflux(SEXP, SEXP, SEXP, SEXP);
 
 #endif
