@@ -710,10 +710,12 @@ SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP cost, SEXP rtree)
 
         memset(flux, 0, ndim*ndim*sizeof(double));
 
-        weight = 0;
+        weight = Pij[(nstate-1) + (nstate-1) * nstate];
 
         for (i = 0; i < (nstate-1); ++i)
         {
+            weight += Pij[i + i * nstate];
+
             for (j = (i+1); j < nstate; ++j)
             {
                 if (Pij[i + j * nstate] > 1e-3)
@@ -734,11 +736,9 @@ SEXP rcm_dmm_doflux(SEXP pij, SEXP prob, SEXP cost, SEXP rtree)
             }
         }
 
-        if (weight > 0)
-        {
-            for (k = 0; k < ndim*ndim; ++k)
-                flux[k] /= weight;
-        }
+        for (k = 0; k < ndim*ndim; ++k)
+            flux[k] /= weight;
+
     }
 
     UNPROTECT(1);
