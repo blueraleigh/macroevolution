@@ -10,7 +10,7 @@
 #' the terminal edges will point. Only valid if \code{method = "cartesian"}.}
 #' \item{lwd}{Line width for drawing edges.}
 #' \item{edge.color}{Color for drawing edges. If the length is greater than 1 it
-#' should be equal \code{Nnode(phy) - 1}.}
+#' should be equal \code{Nnode(phy)}.}
 #' \item{tip.labels}{Either \code{TRUE} or \code{FALSE}. Specifies whether terminal
 #' taxon labels are drawn.}
 #' \item{cex.label}{The size to draw labels when \code{tip.labels = TRUE}.}
@@ -92,7 +92,8 @@ plot.tree = function(phy, ...) {
 }
 
 
-draw.arc = function(r, theta, asp, grain=30, ...) {
+draw.arc = function(r, theta, asp, lwd, col, grain=30) {
+    cntr = 1
     path = t(apply(theta, 1, function(z) seq(z[1], z[2], length.out=grain+1)))
     arcs = apply(cbind(r, theta), 1, function(z) {
         zz = seq(z[2], z[3], length.out=grain+1)
@@ -101,6 +102,7 @@ draw.arc = function(r, theta, asp, grain=30, ...) {
         y0 = z[1] * asp * sin(arcs[, 1])
         x1 = z[1] * cos(arcs[, 2])
         y1 = z[1] * asp * sin(arcs[, 2])
-        segments(x0, y0, x1, y1, ...)
+        segments(x0, y0, x1, y1, lwd=lwd[cntr], col=col[cntr])
+        cntr <<- cntr + 1
     })
 }
