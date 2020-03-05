@@ -244,6 +244,8 @@ SEXP phyr_ladderize(SEXP rtree, SEXP ndesc)
     struct node *rtdesc;
     struct phy *phy = (struct phy *)R_ExternalPtrAddr(rtree);
 
+    SEXP perm = PROTECT(allocVector(INTSXP, phy->nnode));
+
     n = INTEGER(ndesc);
 
     phy_traverse_prepare(phy, phy->root, INTERNAL_NODES_ONLY, PREORDER);
@@ -264,11 +266,17 @@ SEXP phyr_ladderize(SEXP rtree, SEXP ndesc)
     p = phy->root;
     while (p) {
         phy->nodes[i] = p;
-        if (p->ndesc) {
+        if (p->ndesc)
+        {
+            INTEGER(perm)[phy->ntip + j] = p->index + 1;
             p->index = phy->ntip + j;
             phy->inodes[j++] = p;
-        } else
+        }
+        else
+        {
+            INTEGER(perm)[k] = p->index + 1;
             p->index = k++;
+        }
         phy->vseq[p->index] = i++;
 
         if (p->lfdesc)
@@ -285,7 +293,8 @@ SEXP phyr_ladderize(SEXP rtree, SEXP ndesc)
         }
     }
 
-    return R_NilValue;
+    UNPROTECT(1);
+    return perm;
 }
 
 

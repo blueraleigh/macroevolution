@@ -290,7 +290,7 @@ tree.ladderize = function(phy) {
     stopifnot(tree.isbinary(phy))
     ndesc = sapply(1L:Nnode(phy), function(n) length(descendants(n, phy)))
     phy.dup = tree.duplicate(phy)
-    .Call(phyr_ladderize, phy.dup, ndesc)
+    perm = .Call(phyr_ladderize, phy.dup, ndesc)
     r = root(phy.dup)
     ntip = Ntip(phy.dup)
     nnode = Nnode(phy.dup)
@@ -298,6 +298,10 @@ tree.ladderize = function(phy) {
     attr(phy.dup, "root") = r
     attr(phy.dup, "Ntip") = ntip
     attr(phy.dup, "Nnode") = nnode
+    # the perm attribute stores the original node index:
+    # e.g. the node with index 1 in the ladderized tree has index perm[1]
+    # in the unladderized tree
+    attr(phy.dup, "perm") = perm
     class(phy.dup) = "tree"
     return (phy.dup)
 }
