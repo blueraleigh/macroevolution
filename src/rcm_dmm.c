@@ -544,7 +544,7 @@ SEXP rcm_dmm_decomp(SEXP tipstate_arr, SEXP prob_arr, SEXP perm_arr,
 ** each i,j element can be thought of as how much of r[i] is
 ** transferred to c[j].
 */
-void wasserstein(int *N, double *r, double *c, double *P, double *M)
+static void wasserstein(int *N, double *r, double *c, double *P, double *M)
 {
     int i;
     int j;
