@@ -21,6 +21,7 @@ ancestors
 brlens
 children
 descendants
+tips
 Nnode
 Ntip
 root
@@ -33,6 +34,7 @@ tree.isultrametric
 
 extract.clade
 keep.tip
+drop.tip
 rotate.node
 tree.duplicate
 tree.ladderize
@@ -48,6 +50,9 @@ plot.tree
 make.mk.dmm
 make.mk.dmm.from.sample
 read.mk.dmm
+make.rcm.dmm
+make.rcm.dmm.from.sample
+read.rcm.dmm
 make.mk.epoch
 make.ratematrix.mk.epoch
 make.asr.mk.epoch

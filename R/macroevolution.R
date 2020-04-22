@@ -10,6 +10,7 @@
 #' brlens
 #' children
 #' descendants
+#' tips
 #' Nnode
 #' Ntip
 #' root
@@ -20,6 +21,7 @@
 #' @section Tree manipulation functions:
 #' extract.clade
 #' keep.tip
+#' drop.tip
 #' rotate.node
 #' tree.duplicate
 #' tree.ladderize
@@ -31,6 +33,9 @@
 #' make.mk.dmm
 #' make.mk.dmm.from.sample
 #' read.mk.dmm
+#' make.rcm.dmm
+#' make.rcm.dmm.from.sample
+#' read.rcm.dmm
 #' make.mk.epoch
 #' make.ratematrix.mk.epoch
 #' make.asr.mk.epoch
