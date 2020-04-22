@@ -188,7 +188,7 @@ make.rcm.kmeans.counts.from.sample = function(i, output.file)
     smap = function(n, prior=FALSE)
     {
         stopifnot(as.integer(n) > 0)
-        return (.Call(rcm_stochastic_map, as.integer(n), model, as.integer(prior)))
+        return (.Call(rcm_stochastic_map, as.integer(n), model))
     }
 
     expected.counts = structure(t(.Call(rcm_stochastic_map_expected_counts, model))

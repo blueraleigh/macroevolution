@@ -1,2 +1,4 @@
 useDynLib(macroevolution, .registration=TRUE)
 exportPattern("^[[:alpha:]]+")
+
+S3method(plot, tree)

@@ -4,10 +4,10 @@
 \alias{plot.tree}
 \title{Plot a phylogeny}
 \usage{
-\method{plot}{tree}(phy, ...)
+\method{plot}{tree}(x, ...)
 }
 \arguments{
-\item{phy}{An object of class \code{tree}}
+\item{x}{An object of class \code{tree}}
 
 \item{...}{Further arguments to control plot appearance}
 }
@@ -25,7 +25,7 @@ Additional arguments that can be specified through \code{...} include,
 the terminal edges will point. Only valid if \code{method = "cartesian"}.}
 \item{lwd}{Line width for drawing edges.}
 \item{edge.color}{Color for drawing edges. If the length is greater than 1 it
-should be equal \code{Nnode(phy) - 1}.}
+should be equal \code{Nnode(phy)}.}
 \item{tip.labels}{Either \code{TRUE} or \code{FALSE}. Specifies whether terminal
 taxon labels are drawn.}
 \item{cex.label}{The size to draw labels when \code{tip.labels = TRUE}.}

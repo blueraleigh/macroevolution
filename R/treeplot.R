@@ -1,6 +1,6 @@
 #' Plot a phylogeny
 #'
-#' @param phy An object of class \code{tree}
+#' @param x An object of class \code{tree}
 #' @param ... Further arguments to control plot appearance
 #' @details
 #' Additional arguments that can be specified through \code{...} include,
@@ -20,7 +20,8 @@
 #' \item{rbf}{The length the root branch as a fraction of tree height. Only valid
 #' if \code{method = "polar"}.}}
 #' @return Invisibly returns the plotting coordinates.
-plot.tree = function(phy, ...) {
+plot.tree = function(x, ...) {
+    phy = x
     vargs = list(...)
     method = ifelse(is.null(method <- vargs$method), "cartesian",
         match.arg(method, c("cartesian", "polar")))

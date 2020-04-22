@@ -1,7 +1,7 @@
 #' Dirichlet-multinomial Markov process model (ultra-common mechanism)
 #'
 #' Bayesian MCMC implementation of the Dirichlet-multinomial Markov process
-#' model described by Grundler and Rabosky (2019).
+#' model described by Grundler and Rabosky (2020), https://doi.org/10.1093/sysbio/syaa031
 #'
 #' @param phy An object of class \code{tree}.
 #' @param x A three column \code{data.frame} containing count data. The first
@@ -32,6 +32,8 @@
 #' The output from the MCMC function is written to a binary file that can be read
 #' back into R with the \code{read.mk.dmm} function. For details on its structure
 #' consult the documentation for \code{read.mk.dmm}.
+#' @seealso \code{\link{read.mk.dmm}} for description of output file format,
+#'   \code{\link{make.rcm.dmm}} for a version of the model that uses branch lengths.
 #' @examples
 #' \dontrun{
 #'  data(snakediet)
@@ -267,6 +269,7 @@ read.header.mk.dmm = function(output.file) {
 #' rows) are read until the end of file is reached.
 #' @return A list with the following structure
 #' \describe{
+#' \item{r}{The number of states in the UCM prior model.}
 #' \item{pars}{A numeric matrix whose rows correspond to posterior samples. The
 #' first column contains the log likelihood of the data conferred by the specific
 #' configuration of state assignments in the sample. The second column contains
@@ -274,9 +277,18 @@ read.header.mk.dmm = function(output.file) {
 #' third column contains the hyperparameter of the UCM prior model. The subsequent
 #' columns are the hyperparameters of the Dirichlet prior on the multinomial
 #' distribution of each state.}
-#'\item{stateid}{An integer matrix that records the index of the state sampled
+#' \item{stateid}{An integer matrix that records the index of the state sampled
 #' for each terminal taxon in each posterior sample. Note that the indices of
 #' states in one sample do not necessarily align with the indices in another.}}
+#' \item{dataset}{The count dataset used for analysis. The first column holds the
+#' terminal node indices, the second column holds the resource category indices,
+#' and the third column holds the number of observations for the particular
+#' combination of indices in columns one and two. Note that the indices in the
+#' first two columns are 0-based, following C (not R) convention. Also, resource
+#' category indices correspond to the column name ordering in the \code{pars}
+#' list member. Thus, index 0 corresponds to the resource named in column 4 of
+#' of \code{pars}; index 1, to column 5; and so on.}
+#' \item{newick}{The Newick string of the phylogeny used for analysis.}
 read.mk.dmm = function(output.file, skip=0, n=-1) {
     con = file(output.file, "rb")
     on.exit(close(con))

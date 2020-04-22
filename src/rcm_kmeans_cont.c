@@ -85,6 +85,7 @@ static struct rcm_data *data_alloc(SEXP data, struct rcm *model)
     if (nnz)
     {
         m = 0;
+        sz = 0;
         ofs = 0;
         sid = (int)(measure[0]);
         iid = (int)(measure[0 + 1*nnz]);
