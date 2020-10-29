@@ -61,4 +61,9 @@ SEXP rcm_dmm_decomp(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rcm_pij(SEXP, SEXP);
 SEXP rcm_dmm_doflux(SEXP, SEXP, SEXP, SEXP);
 
+SEXP do_sankoff_downpass(SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP do_sankoff_uppass(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP do_sankoff_count(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP do_sankoff_sample(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+
 #endif
