@@ -379,6 +379,7 @@ make.rcm.dmm.from.sample = function(i, output.file)
     dens.map = structure(
         sweep(dirichlet.pars - 1, 1, rowSums(dirichlet.pars - 1), "/")
         , dimnames=list(NULL, names(out$dirichlet.prior)))
+    dens.map[which(is.na(rowSums(dens.map))), ] = 1 / ncol(dens.map)
 
     smap = function(n)
     {
