@@ -312,7 +312,8 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
     {
         skip = min(skip, nlines)
         nlines = nlines - skip
-        invisible(readChar(con, skip * line.sz, useBytes=TRUE))
+        #invisible(readChar(con, skip * line.sz, useBytes=TRUE))
+        invisible(readBin(con, "raw", skip * line.sz))
     }
 
     if (n > 0)
@@ -353,43 +354,48 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
 #'}
 make.rcm.dmm.from.sample = function(i, output.file)
 {
-    out = read.rcm.dmm(output.file, skip=i, n=1)
-    phy = out$phy
-    dataset = out$dataset
+    out = read.rcm.dmm(output.file, skip=i-1, n=1)
+    if (!is.null(out)) {
+        phy = out$phy
+        dataset = out$dataset
 
-    model = .Call(
-        rcm_dmm_model_init,
-        phy,
-        dataset,
-        length(out$dirichlet.prior),
-        out$r,
-        out$pars[1, 3],
-        out$dirichlet.prior,
-        out$stateid[1, ])
+        model = .Call(
+            rcm_dmm_model_init,
+            phy,
+            dataset,
+            length(out$dirichlet.prior),
+            out$r,
+            out$pars[1, 3],
+            out$dirichlet.prior,
+            out$stateid[1, ])
 
-    # align tip state indices to rows of dens.* objects
-    tip.state = match(out$stateid[1L, ], unique(out$stateid[1L, ]))
+        # align tip state indices to rows of dens.* objects
+        tip.state = match(out$stateid[1L, ], unique(out$stateid[1L, ]))
 
-    asr = .Call(rcm_marginal_asr, model)
-    dirichlet.pars = .Call(rcm_dmm_posterior_multinomial, model)
+        asr = .Call(rcm_marginal_asr, model)
+        dirichlet.pars = .Call(rcm_dmm_posterior_multinomial, model)
 
-    dens.mean = structure(
-        sweep(dirichlet.pars, 1, rowSums(dirichlet.pars), "/")
-        , dimnames=list(NULL, names(out$dirichlet.prior)))
-    dens.map = structure(
-        sweep(dirichlet.pars - 1, 1, rowSums(dirichlet.pars - 1), "/")
-        , dimnames=list(NULL, names(out$dirichlet.prior)))
-    dens.map[which(is.na(rowSums(dens.map))), ] = 1 / ncol(dens.map)
+        dens.mean = structure(
+            sweep(dirichlet.pars, 1, rowSums(dirichlet.pars), "/")
+            , dimnames=list(NULL, names(out$dirichlet.prior)))
+        dens.map = structure(
+            sweep(dirichlet.pars - 1, 1, rowSums(dirichlet.pars - 1), "/")
+            , dimnames=list(NULL, names(out$dirichlet.prior)))
+        dens.map[which(is.na(rowSums(dens.map))), ] = 1 / ncol(dens.map)
 
-    smap = function(n)
-    {
-        stopifnot(as.integer(n) > 0)
-        return (.Call(rcm_stochastic_map, as.integer(n), model))
+        smap = function(n)
+        {
+            stopifnot(as.integer(n) > 0)
+            return (.Call(rcm_stochastic_map, as.integer(n), model))
+        }
+
+        expected.counts = structure(
+            t(.Call(rcm_stochastic_map_expected_counts, model))
+            , dimnames=list(NULL, c("posterior", "prior")))
+
+        return (list(asr=asr, smap=smap, dens.map=dens.map,
+            dens.mean=dens.mean, tip.state=tip.state,
+            expected.counts=expected.counts))
     }
-
-    expected.counts = structure(t(.Call(rcm_stochastic_map_expected_counts, model))
-        , dimnames=list(NULL, c("posterior", "prior")))
-
-    return (list(asr=asr, smap=smap, dens.map=dens.map, dens.mean=dens.mean,
-        tip.state=tip.state, expected.counts=expected.counts))
+    return (NULL)
 }
