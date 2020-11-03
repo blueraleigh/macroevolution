@@ -2,7 +2,6 @@
 #'
 #' Bayesian MCMC implementation of the Dirichlet-multinomial Markov process
 #' model described by Grundler and Rabosky (2020), https://doi.org/10.1093/sysbio/syaa031
-#' that does not integrate out branch lengths.
 #'
 #' @param phy An object of class \code{tree}.
 #' @param x A three column \code{data.frame} containing count data. The first
@@ -17,6 +16,11 @@
 #' @param beta.init An optional initial value for the Dirichlet prior hyperparameter on
 #' the multinomial distributions corresponding to each cluster. If omitted defaults
 #' to the uniform Dirichlet distribution prior. This is never updated during the MCMC.
+#' @param integrate.brlen An optional boolean value indicating whether or not to
+#' assume branches have i.i.d. rates drawn from a Gamma prior. If TRUE, the branch
+#' rates are integrated out of the likelihood function such that a single set of
+#' transition probabilities applies to all branches. The default is FALSE, in
+#' which case all branches share a single rate.
 #' @return A function to perform MCMC inference that takes the following arguments
 #' \describe{
 #' \item{niter}{The number of iterations that the MCMC will run for. Default is 1000.}
@@ -31,15 +35,6 @@
 #' The output from the MCMC function is written to a binary file that can be read
 #' back into R with the \code{read.rcm.dmm} function. For details on its structure
 #' consult the documentation for \code{read.rcm.dmm}.
-#' @details In the \code{make.mk.dmm} implementation, each branch is allowed to have its
-#' own rate, and through a judicious choice of prior these are integrated out of
-#' the model, resulting in a single set of transition probabilities that describe
-#' the dynamics on all branches and that do not depend on the temporal durations
-#' of branches. In this version, we assume instead that there is a single rate
-#' across the entire phylogeny. In other words, the prior model for the evolution
-#' of states is just the regular fully-symmetric, or equal-rates, model. In this
-#' case, the temporal branch lengths do matter, and each branch has its own set
-#' of transition probabilities.
 #' @seealso \code{\link{read.rcm.dmm}} for description of output file format.
 #' @examples
 #' \dontrun{
@@ -82,7 +77,8 @@
 #'  # first row of obj$dens.map or obj$dens.mean.
 #'  obj$asr
 #'}
-make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init)
+make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init,
+    integrate.brlen)
 {
     stopifnot(is.tree(phy))
     stopifnot(tree.isbinary(phy))
@@ -165,12 +161,26 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init)
             stop("size of initial partition is too large")
     }
 
+    if (missing(integrate.brlen))
+    {
+        integrate.brlen = 0L
+    }
+    else
+    {
+        stopifnot(inherits(integrate.brlen, "logical"))
+        if (integrate.brlen[1])
+            integrate.brlen = 1L
+        else
+            integrate.brlen = 0L
+    }
+
     model = .Call(
         rcm_dmm_model_init,
         phy,
         x,
         p,
         r,
+        integrate.brlen,
         rate.init,
         beta.init,
         as.integer(stateid.init))
@@ -192,7 +202,8 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init)
         if (output.mode == "wb")
         {
             newick = write.newick(phy)
-            writeBin(c(p, r, nrow(x), Ntip(phy), nchar(newick)), outputConn)
+            writeBin(c(p, r, integrate.brlen, nrow(x), Ntip(phy),
+                nchar(newick)), outputConn)
             writeBin(tiplabels(phy), outputConn)
             writeBin(rnames, outputConn)
             writeBin(c(x), outputConn)
@@ -226,21 +237,22 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init)
 #' Offset \tab Size  \tab  Description\cr
 #' 0      \tab 4     \tab  Number of resource categories (= J)\cr
 #' 4      \tab 4     \tab  Number of resource states (= K)\cr
-#' 8      \tab 4     \tab  Number of rows in the input data matrix (= M)\cr
-#' 12     \tab 4     \tab  Number of terminal taxa (= N)\cr
-#' 16     \tab 4     \tab  Number of characters in the Newick string for the input phylogeny\cr
-#' 20     \tab X     \tab  An array of strings giving the names of the terminal taxa\cr
-#' 20+X   \tab Y     \tab  An array of strings giving the names of the resource categories\cr
-#' 20+X+Y \tab 12M   \tab  An array of integers giving the input dataset\cr
-#' 20+X+Y+12M \tab Z \tab  The Newick string\cr
-#' 20+X+Y+12M+Z \tab 8J \tab The hyperparameters of the Dirichlet prior
+#' 8      \tab 4     \tab  Flag indicating if branch lengths are integrated out\cr
+#' 12     \tab 4     \tab  Number of rows in the input data matrix (= M)\cr
+#' 16     \tab 4     \tab  Number of terminal taxa (= N)\cr
+#' 20     \tab 4     \tab  Number of characters in the Newick string for the input phylogeny\cr
+#' 24     \tab X     \tab  An array of strings giving the names of the terminal taxa\cr
+#' 24+X   \tab Y     \tab  An array of strings giving the names of the resource categories\cr
+#' 24+X+Y \tab 12M   \tab  An array of integers giving the input dataset\cr
+#' 24+X+Y+12M \tab Z \tab  The Newick string\cr
+#' 24+X+Y+12M+Z \tab 8J \tab The hyperparameters of the Dirichlet prior
 #'}
 #'
 #' Note that byte offsets assume 1 byte chars, 4 byte integers, and 8 byte doubles.
 #' After the header is the payload. The first entry in the payload is the initial state
 #' configuration and hyperparameter values that were used to start the MCMC run.
 #' The payload has the following repetitive structure, where W initially equals
-#' 20+X+Y+12M+Z+8J and is incremented by 24+4N for each posterior sample.
+#' 24+X+Y+12M+Z+8J and is incremented by 24+4N for each posterior sample.
 #'
 #'\tabular{rrl}{
 #' Offset  \tab   Size \tab  Description\cr
@@ -256,6 +268,7 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init)
 #' @return A list with the following structure
 #' \describe{
 #' \item{r}{The number of states in the prior model.}
+#' \item{integrate.brlen}{Were branch lengths integrated out.}
 #' \item{pars}{A numeric matrix whose rows correspond to posterior samples. The
 #' first column contains the log likelihood of the data conferred by the specific
 #' configuration of state assignments in the sample. The second column contains
@@ -279,13 +292,14 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
     con = file(output.file, "rb")
     on.exit(close(con))
 
-    meta = readBin(con, integer(), 5L)
+    meta = readBin(con, integer(), 6L)
 
     p = meta[1L]
     r = meta[2L]
-    nr = meta[3L]
-    ntip  = meta[4L]
-    nc = meta[5L]
+    integrate.brlen = meta[3L]
+    nr = meta[4L]
+    ntip  = meta[5L]
+    nc = meta[6L]
 
     tip.names = readBin(con, character(), ntip)
     rnames = readBin(con, character(), p)
@@ -296,7 +310,7 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
     # Dirichlet hyperparameters for each state
     dprior = structure(readBin(con, double(), p), names=rnames)
 
-    header.sz = 20 + (nr*3*4) + nc + sum(nchar(tip.names, "bytes") + 1) +
+    header.sz = 24 + (nr*3*4) + nc + sum(nchar(tip.names, "bytes") + 1) +
         p * 8 + sum(nchar(rnames, "bytes") + 1)
     file.sz = file.size(output.file) - header.sz
     line.sz = 8 * 3 + 4 * ntip
@@ -331,8 +345,8 @@ read.rcm.dmm = function(output.file, skip=0, n=-1)
             stateid[i, ] = readBin(con, integer(), ntip)
         }
 
-        return (list(r=r, pars=pars, stateid=stateid,
-            dirichlet.prior=dprior, dataset=dataset, phy=phy))
+        return (list(r=r, integrate.brlen=integrate.brlen, pars=pars,
+            stateid=stateid, dirichlet.prior=dprior, dataset=dataset, phy=phy))
     }
 
     return (NULL)
@@ -365,6 +379,7 @@ make.rcm.dmm.from.sample = function(i, output.file)
             dataset,
             length(out$dirichlet.prior),
             out$r,
+            out$integrate.brlen,
             out$pars[1, 3],
             out$dirichlet.prior,
             out$stateid[1, ])
@@ -399,3 +414,4 @@ make.rcm.dmm.from.sample = function(i, output.file)
     }
     return (NULL)
 }
+

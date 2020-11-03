@@ -188,6 +188,32 @@ void rcm_clear(struct rcm *model)
 }
 
 
+static void compute_pij(struct node *node, struct rcm *model,
+    double *pii, double *pij)
+{
+    double r = (double)(model->r);
+    double D;
+
+    if (!model->integrate_brlen)
+    {
+        // a single model->rate is shared by all branches
+        D = exp(-r * model->rate * node->brlen);
+        *pij = (1 - D) / r;
+        *pii = *pij + D;
+    }
+    else
+    {
+        // each branch has its own rate but all branch rates
+        // share a common gamma(model->rate, 1) prior, which
+        // allows us to "integrate out" branch lengths so that
+        // all branches share a single set of transition probabilities
+        D = pow(1 / (r/(r-1) + 1), model->rate);
+        *pij = (1 - D) / r;
+        *pii = *pij + D;
+    }
+}
+
+
 static void rcm_branch_downpass(struct node *node, struct rcm *model)
 {
     struct rcm_statelist *sl = &model->sl;
@@ -196,6 +222,8 @@ static void rcm_branch_downpass(struct node *node, struct rcm *model)
     struct rcm_state *non = sl->tail;
     int r = sl->len - 1;  // number of analog states
     int r_max = sl->r;
+    double pii;
+    double pij;
 
     if (r == r_max)
     {
@@ -203,9 +231,7 @@ static void rcm_branch_downpass(struct node *node, struct rcm *model)
         r = r_max - 1;
     }
 
-    double D = exp(-r_max * model->rate * node->brlen);
-    double pij = (1 - D) / (double)r_max;
-    double pii = pij + D;
+    compute_pij(node, model, &pii, &pij);
 
     SCLK(non, node) = pii * DCLK(non, node) + (r_max - r - 1) * pij * DCLK(non, node);
 
@@ -283,6 +309,8 @@ static void rcm_node_uppass(struct node *node, struct rcm *model)
     struct rcm_state *non = sl->tail;
     int r = sl->len - 1;  // number of analog states
     int r_max = sl->r;
+    double pii;
+    double pij;
 
     struct node *anc;
     struct node *sib;
@@ -300,9 +328,7 @@ static void rcm_node_uppass(struct node *node, struct rcm *model)
         r = r_max - 1;
     }
 
-    double D = exp(-r_max * model->rate * node->brlen);
-    double pij = (1 - D) / (double)r_max;
-    double pii = pij + D;
+    compute_pij(node, model, &pii, &pij);
 
     UCLK(non, node) = UCLK(non, anc) * SCLK(non, sib) * pii
         + (r_max - r - 1) * UCLK(non, anc) * SCLK(non, sib) * pij;
@@ -702,6 +728,7 @@ void rcm_init_states(int *stateid, struct rcm *model)
 struct rcm *rcm_init_start(
     int p,
     int r,
+    int integrate_brlen,
     double rate,
     struct phy *phy)
 {
@@ -720,6 +747,7 @@ struct rcm *rcm_init_start(
 
     model->p = p;
     model->r = r;
+    model->integrate_brlen = integrate_brlen;
     model->stateid         = malloc(phy->ntip * sizeof(struct rcm_state *));
     model->stateid_r       = malloc(phy->ntip * sizeof(int));
     model->needsupdate_up  = calloc(phy->nnode, sizeof(int));
@@ -938,15 +966,15 @@ static double asr_compute(
     struct rcm_state *non = sl->tail;
     int r = sl->len - 1;  // number of analog states
     int r_max = sl->r;
+    double pii;
+    double pij;
 
     double lk = 0;
 
     struct node *anc;
     struct node *sib;
 
-    double D = exp(-r_max * model->rate * node->brlen);
-    double pij = (1 - D) / (double)r_max;
-    double pii = pij + D;
+    compute_pij(node, model, &pii, &pij);
 
     anc = node->anc;
 
@@ -1061,7 +1089,6 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
     double g;
     double w;
     double wmax;
-    double D;
     double pii;
     double pij;
 
@@ -1089,9 +1116,7 @@ SEXP rcm_stochastic_map(SEXP nmaps, SEXP model)
 
     while ((node = phy_traverse_step(m->phy)) != 0)
     {
-        D = exp(-r_max * m->rate * node->brlen);
-        pij = (1 - D) / (double)r_max;
-        pii = pij + D;
+        compute_pij(node, m, &pii, &pij);
 
         for (i = 0; i < n; ++i)
         {
@@ -1166,7 +1191,6 @@ SEXP rcm_pij(SEXP marg, SEXP model)
     int r_max = m->r;
     int r;
     double norm;
-    double D;
     double pij;
     double pii;
     double mp;
@@ -1203,9 +1227,7 @@ SEXP rcm_pij(SEXP marg, SEXP model)
         P_ij = REAL(VECTOR_ELT(result, d->index));
         p = d->anc;
 
-        D = exp(-r_max * m->rate * d->brlen);
-        pij = (1 - D) / (double)r_max;
-        pii = pij + D;
+        compute_pij(d, m, &pii, &pij);
 
         for (from = sl->head, i = 0; from != NULL; from = from->next, ++i)
         {
@@ -1245,6 +1267,8 @@ static double rcm_branch_posterior(struct node *node, struct rcm *model)
     struct rcm_state *non = sl->tail;
     int r = sl->len - 1;  // number of analog states
     int r_max = sl->r;
+    double pii;
+    double pij;
 
     struct node *anc;
     struct node *sib;
@@ -1262,9 +1286,7 @@ static double rcm_branch_posterior(struct node *node, struct rcm *model)
         r = r_max - 1;
     }
 
-    double D = exp(-r_max * model->rate * node->brlen);
-    double pij = (1 - D) / (double)r_max;
-    double pii = pij + D;
+    compute_pij(node, model, &pii, &pij);
 
     double eij = model->rate * (1 - pij) * node->brlen;
     double eii = model->rate * (1 - pii) * node->brlen;
@@ -1302,9 +1324,10 @@ static double rcm_branch_posterior(struct node *node, struct rcm *model)
 static double rcm_branch_prior(struct node *node, struct rcm *model)
 {
     double r = (double)(model->r);
-    double D = exp(-r * model->rate * node->brlen);
-    double pij = (1 - D) / r;
-    double pii = pij + D;
+    double pii;
+    double pij;
+
+    compute_pij(node, model, &pii, &pij);
 
     double eij = model->rate * (1 - pij) * node->brlen;
     double eii = model->rate * (1 - pii) * node->brlen;

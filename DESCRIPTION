@@ -9,4 +9,4 @@ Description: Provides various functions for analyzing character evolution and
     diversification.
 NeedsCompilation: yes
 License: Public domain
-RoxygenNote: 6.0.1
+RoxygenNote: 7.1.1

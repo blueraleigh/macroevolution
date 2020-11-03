@@ -4,7 +4,9 @@
 \name{snaketree}
 \alias{snaketree}
 \title{Pseudoboine snake phylogeny}
-\format{A Newick formatted character string}
+\format{
+A Newick formatted character string
+}
 \source{
 Tonini, J., Beard, K.H., Ferreira, R.B., Jetz, W., and R.A. Pyron. 2016. Biological Conservation 204: 23-31
 }

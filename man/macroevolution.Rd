@@ -3,11 +3,7 @@
 \docType{package}
 \name{macroevolution}
 \alias{macroevolution}
-\alias{macroevolution-package}
 \title{macroevolution: a package for comparative analysis of biological diversity}
-\description{
-macroevolution: a package for comparative analysis of biological diversity
-}
 \section{Tree I/O functions}{
 
 read.newick

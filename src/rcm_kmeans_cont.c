@@ -314,6 +314,7 @@ SEXP rcm_kmeans_cont_model_init(
     SEXP data,
     SEXP p,
     SEXP r,
+    SEXP integrate_brlen,
     SEXP rate,
     SEXP stateid)
 {
@@ -324,6 +325,7 @@ SEXP rcm_kmeans_cont_model_init(
     model = rcm_init_start(
         INTEGER(p)[0],
         INTEGER(r)[0],
+        INTEGER(integrate_brlen)[0],
         REAL(rate)[0],
         (struct phy *)R_ExternalPtrAddr(rtree));
 

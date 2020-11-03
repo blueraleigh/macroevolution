@@ -1,4 +1,5 @@
-make.rcm.kmeans.counts = function(phy, x, r, stateid.init, rate.init)
+make.rcm.kmeans.counts = function(phy, x, r, stateid.init, rate.init,
+    integrate.brlen)
 {
     stopifnot(is.tree(phy))
     stopifnot(tree.isbinary(phy))
@@ -61,12 +62,25 @@ make.rcm.kmeans.counts = function(phy, x, r, stateid.init, rate.init)
             stop("size of initial partition is too small")
     }
 
+    if (missing(integrate.brlen))
+    {
+        integrate.brlen = 1L
+    }
+    else
+    {
+        if (integrate.brlen)
+            integrate.brlen = 1L
+        else
+            integrate.brlen = 0L
+    }
+
     model = .Call(
         rcm_kmeans_counts_model_init,
         phy,
         counts,
         p,
         r,
+        integrate.brlen,
         rate.init,
         as.integer(stateid.init))
 
@@ -87,7 +101,8 @@ make.rcm.kmeans.counts = function(phy, x, r, stateid.init, rate.init)
         if (output.mode == "wb")
         {
             newick = write.newick(phy)
-            writeBin(c(p, r, nrow(x), Ntip(phy), nchar(newick)), outputConn)
+            writeBin(c(p, r, integrate.brlen, nrow(x), Ntip(phy),
+                nchar(newick)), outputConn)
             writeBin(tiplabels(phy), outputConn)
             writeBin(rnames, outputConn)
             writeBin(c(x), outputConn)
@@ -116,13 +131,14 @@ read.rcm.kmeans.counts = function(output.file, skip=0, n=-1)
     con = file(output.file, "rb")
     on.exit(close(con))
 
-    meta = readBin(con, integer(), 5L)
+    meta = readBin(con, integer(), 6L)
 
     p = meta[1L]
     r = meta[2L]
-    nr = meta[3L]
-    ntip  = meta[4L]
-    nc = meta[5L]
+    integrate.brlen = meta[3L]
+    nr = meta[4L]
+    ntip  = meta[5L]
+    nc = meta[6L]
 
     tip.names = readBin(con, character(), ntip)
     rnames = readBin(con, character(), p)
@@ -130,7 +146,7 @@ read.rcm.kmeans.counts = function(output.file, skip=0, n=-1)
     dataset = matrix(readBin(con, integer(), 3L * nr), nr, 3L)
     newick = readChar(con, nc)
 
-    header.sz = 20 + (nr*3*4) + nc + sum(nchar(tip.names, "bytes") + 1) +
+    header.sz = 24 + (nr*3*4) + nc + sum(nchar(tip.names, "bytes") + 1) +
         sum(nchar(rnames, "bytes") + 1)
     file.sz = file.size(output.file) - header.sz
     line.sz = 8 * 3 + 4 * ntip
@@ -159,8 +175,8 @@ read.rcm.kmeans.counts = function(output.file, skip=0, n=-1)
             stateid[i, ] = readBin(con, integer(), ntip)
         }
 
-        return (list(r=r, pars=pars, stateid=stateid, dataset=dataset,
-            newick=newick))
+        return (list(r=r, integrate.brlen=integrate.brlen, pars=pars,
+            stateid=stateid, dataset=dataset, newick=newick))
     }
 
     return (NULL)
@@ -180,6 +196,7 @@ make.rcm.kmeans.counts.from.sample = function(i, output.file)
         counts,
         ncol(counts),
         out$r,
+        out$integrate.brlen,
         out$pars[1, 3],
         out$stateid[1, ])
 

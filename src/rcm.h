@@ -130,6 +130,9 @@ struct rcm {
     /* Number of dimensions for each datum */
     int p;
 
+    /* Should branch lengths be integrated out */
+    int integrate_brlen;
+
     /* Each item is the current resource class assignment for a node */
     struct rcm_state **stateid;
 
@@ -187,7 +190,8 @@ struct rcm_mcmc {
 
 
 void rcm_clear(struct rcm *model);
-struct rcm *rcm_init_start(int p, int r, double alpha, struct phy *phy);
+struct rcm *rcm_init_start(int p, int r, int integrate_brlen,
+    double alpha, struct phy *phy);
 double rcm_dataloglk(struct rcm *model);
 double rcm_treeloglk(struct rcm *model);
 void rcm_init_states(int *stateid, struct rcm *model);

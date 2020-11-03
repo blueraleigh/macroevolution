@@ -18,6 +18,7 @@ rows) are read until the end of file is reached.}
 A list with the following structure
 \describe{
 \item{r}{The number of states in the prior model.}
+\item{integrate.brlen}{Were branch lengths integrated out.}
 \item{pars}{A numeric matrix whose rows correspond to posterior samples. The
 first column contains the log likelihood of the data conferred by the specific
 configuration of state assignments in the sample. The second column contains
@@ -47,21 +48,22 @@ following header format.
 Offset \tab Size  \tab  Description\cr
 0      \tab 4     \tab  Number of resource categories (= J)\cr
 4      \tab 4     \tab  Number of resource states (= K)\cr
-8      \tab 4     \tab  Number of rows in the input data matrix (= M)\cr
-12     \tab 4     \tab  Number of terminal taxa (= N)\cr
-16     \tab 4     \tab  Number of characters in the Newick string for the input phylogeny\cr
-20     \tab X     \tab  An array of strings giving the names of the terminal taxa\cr
-20+X   \tab Y     \tab  An array of strings giving the names of the resource categories\cr
-20+X+Y \tab 12M   \tab  An array of integers giving the input dataset\cr
-20+X+Y+12M \tab Z \tab  The Newick string\cr
-20+X+Y+12M+Z \tab 8J \tab The hyperparameters of the Dirichlet prior
+8      \tab 4     \tab  Flag indicating if branch lengths are integrated out\cr
+12     \tab 4     \tab  Number of rows in the input data matrix (= M)\cr
+16     \tab 4     \tab  Number of terminal taxa (= N)\cr
+20     \tab 4     \tab  Number of characters in the Newick string for the input phylogeny\cr
+24     \tab X     \tab  An array of strings giving the names of the terminal taxa\cr
+24+X   \tab Y     \tab  An array of strings giving the names of the resource categories\cr
+24+X+Y \tab 12M   \tab  An array of integers giving the input dataset\cr
+24+X+Y+12M \tab Z \tab  The Newick string\cr
+24+X+Y+12M+Z \tab 8J \tab The hyperparameters of the Dirichlet prior
 }
 
 Note that byte offsets assume 1 byte chars, 4 byte integers, and 8 byte doubles.
 After the header is the payload. The first entry in the payload is the initial state
 configuration and hyperparameter values that were used to start the MCMC run.
 The payload has the following repetitive structure, where W initially equals
-20+X+Y+12M+Z+8J and is incremented by 24+4N for each posterior sample.
+24+X+Y+12M+Z+8J and is incremented by 24+4N for each posterior sample.
 
 \tabular{rrl}{
 Offset  \tab   Size \tab  Description\cr

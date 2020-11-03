@@ -4,7 +4,7 @@
 \alias{make.rcm.dmm}
 \title{Dirichlet-multinomial Markov process model (random cluster model)}
 \usage{
-make.rcm.dmm(phy, x, r, stateid.init, rate.init, beta.init)
+make.rcm.dmm(phy, x, r, stateid.init, rate.init, beta.init, integrate.brlen)
 }
 \arguments{
 \item{phy}{An object of class \code{tree}.}
@@ -25,6 +25,12 @@ prior on the evolution of states. If omitted defaults to a random value.}
 \item{beta.init}{An optional initial value for the Dirichlet prior hyperparameter on
 the multinomial distributions corresponding to each cluster. If omitted defaults
 to the uniform Dirichlet distribution prior. This is never updated during the MCMC.}
+
+\item{integrate.brlen}{An optional boolean value indicating whether or not to
+assume branches have i.i.d. rates drawn from a Gamma prior. If TRUE, the branch
+rates are integrated out of the likelihood function such that a single set of
+transition probabilities applies to all branches. The default is FALSE, in
+which case all branches share a single rate.}
 }
 \value{
 A function to perform MCMC inference that takes the following arguments
@@ -45,18 +51,6 @@ consult the documentation for \code{read.rcm.dmm}.
 \description{
 Bayesian MCMC implementation of the Dirichlet-multinomial Markov process
 model described by Grundler and Rabosky (2020), https://doi.org/10.1093/sysbio/syaa031
-that does not integrate out branch lengths.
-}
-\details{
-In the \code{make.mk.dmm} implementation, each branch is allowed to have its
-own rate, and through a judicious choice of prior these are integrated out of
-the model, resulting in a single set of transition probabilities that describe
-the dynamics on all branches and that do not depend on the temporal durations
-of branches. In this version, we assume instead that there is a single rate
-across the entire phylogeny. In other words, the prior model for the evolution
-of states is just the regular fully-symmetric, or equal-rates, model. In this
-case, the temporal branch lengths do matter, and each branch has its own set
-of transition probabilities.
 }
 \examples{
 \dontrun{

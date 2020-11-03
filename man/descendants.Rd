@@ -4,8 +4,12 @@
 \alias{descendants}
 \title{Return the descendants of a node}
 \usage{
-descendants(node, phy, visit = c("ALL_NODES", "INTERNAL_NODES_ONLY"),
-  order = c("PREORDER", "POSTORDER"))
+descendants(
+  node,
+  phy,
+  visit = c("ALL_NODES", "INTERNAL_NODES_ONLY"),
+  order = c("PREORDER", "POSTORDER")
+)
 }
 \arguments{
 \item{node}{Index of node whose descendants are desired.}
