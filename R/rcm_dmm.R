@@ -101,7 +101,10 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init,
     p = length(rnames)
 
     f = (floor((Nnode(phy) - 1) / r) + 1) / (Nnode(phy) - 1)
-    rate.max = -log((f*r - 1) / (r - 1)) / (r * mean(brlens(phy)[-root(phy)]))
+    if (!integrate.brlen)
+        rate.max = -log((f*r - 1) / (r - 1)) / (r * mean(brlens(phy)[-root(phy)]))
+    else
+        rate.max = -log((f*r - 1) / (r - 1)) / log((r/(r - 1)) + 1)
 
     if (missing(beta.init))
     {
