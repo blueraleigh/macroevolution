@@ -791,7 +791,10 @@ struct rcm *rcm_init_start(
     while ((node = phy_traverse_step(phy)) != 0)
         tbar += node->brlen / (phy->nnode - 1);
 
-    model->rate_max = -log((f*r - 1) / (r - 1)) / (r * tbar);
+    if (!model->integrate_brlen)
+        model->rate_max = -log((f*r - 1) / (r - 1)) / (r * tbar);
+    else
+        model->rate_max = -log((f*r - 1) / (r - 1)) / log((r/(r - 1)) + 1);
 
     return model;
 }
