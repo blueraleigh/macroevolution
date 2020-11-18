@@ -49,6 +49,7 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(mkepoch_model_init, 6),
     CALLDEF(mkepoch_loglk, 2),
     CALLDEF(mkepoch_marginal_asr, 2),
+    CALLDEF(mkepoch_simulate, 4),
 
     CALLDEF(rcm_dmm_model_init, 8),
     CALLDEF(rcm_kmeans_counts_model_init, 7),

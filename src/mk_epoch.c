@@ -802,3 +802,141 @@ SEXP mkepoch_marginal_asr(SEXP par, SEXP model)
     UNPROTECT(1);
     return ASR;
 }
+
+
+SEXP mkepoch_simulate(SEXP par, SEXP m, SEXP nsims, SEXP rootp)
+{
+    int i;
+    int j;
+    int nsim = INTEGER(nsims)[0];
+    int *nodestate;
+    double u;
+    double t;
+    double lam;
+    double norm;
+
+    int pstate;
+
+    struct model *model;
+    struct node *d;
+    struct node *p;
+    struct rate *rate;
+
+    SEXP NodeState;
+
+    model = (struct model *)R_ExternalPtrAddr(m);
+
+    if (LENGTH(par) != model->rate->npar)
+        error("Expected %d parameters, received %d", model->rate->npar,
+            LENGTH(par));
+
+    rate = model->rate;
+    rate_set(REAL(par), rate);
+
+    NodeState = PROTECT(allocMatrix(INTSXP, model->phy->nnode, nsim));
+    nodestate = INTEGER(NodeState);
+
+    phy_traverse_prepare(model->phy, model->phy->root, ALL_NODES, PREORDER);
+
+    while ((d = phy_traverse_step(model->phy)) != 0)
+    {
+        for (i = 0; i < nsim; ++i)
+        {
+            if (d->anc)
+            {
+                p = d->anc;
+                pstate = nodestate[p->index + i * model->phy->nnode] - 1;
+                epoch_prepare(&model->e, d, -1);
+                epoch_step(&model->e);
+                do {
+                    t = model->e.t;
+                    do {
+                        lam = -1*RATE_ELEM(pstate, pstate, model->e.i);
+                        t -= rexp(1 / lam);
+                        if (t > 0) {
+                            norm = 0;
+                            for (j = (pstate+1); j < model->nstate; ++j)
+                                norm += RATE_ELEM(pstate, j, model->e.i);
+                            for (j = (pstate-1); j >= 0; --j)
+                                norm += RATE_ELEM(pstate, j, model->e.i);
+                            u = unif_rand() * norm;
+                            for (j = (pstate+1); j < model->nstate; ++j) {
+                                u -= RATE_ELEM(pstate, j, model->e.i);
+                                if (u < 0) {
+                                    pstate = j;
+                                    break;
+                                }
+                            }
+                            if (u > 0) {
+                                for (j = (pstate-1); j >= 0; --j) {
+                                    u -= RATE_ELEM(pstate, j, model->e.i);
+                                    if (u < 0) {
+                                        pstate = j;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } while (t > 0);
+                } while (epoch_step(&model->e));
+            }
+            else
+            {
+                if (rootp != R_NilValue)
+                {
+                    norm = 0;
+                    for (j = 0; j < model->nstate; ++j)
+                        norm += REAL(rootp)[j];
+                    u = unif_rand() * norm;
+                    for (j = 0; j < model->nstate; ++j) {
+                        u -= REAL(rootp)[j];
+                        if (u < 0) {
+                            pstate = j;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    t = 10000;
+                    pstate = 0;
+                    do {
+                        lam = -1 * RATE_ELEM(pstate, pstate, model->rate->nmat-1);
+                        t -= rexp(1 / lam);
+                        if (t > 0) {
+                            norm = 0;
+                            for (j = (pstate+1); j < model->nstate; ++j)
+                                norm += RATE_ELEM(pstate, j,
+                                    model->rate->nmat-1);
+                            for (j = (pstate-1); j >= 0; --j)
+                                norm += RATE_ELEM(pstate, j,
+                                    model->rate->nmat-1);
+                            u = unif_rand() * norm;
+                            for (j = (pstate+1); j < model->nstate; ++j) {
+                                u -= RATE_ELEM(pstate, j,
+                                    model->rate->nmat-1);
+                                if (u < 0) {
+                                    pstate = j;
+                                    break;
+                                }
+                            }
+                            if (u > 0) {
+                                for (j = (pstate-1); j >= 0; --j) {
+                                    u -= RATE_ELEM(pstate, j,
+                                        model->rate->nmat-1);
+                                    if (u < 0) {
+                                        pstate = j;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } while (t > 0);
+                }
+            }
+            nodestate[d->index + i * model->phy->nnode] = pstate + 1;
+        }
+    }
+    UNPROTECT(1);
+    return NodeState;
+}

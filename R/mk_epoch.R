@@ -251,3 +251,22 @@ make.asr.mk.epoch = function(lik) {
     return (asr)
 }
 
+
+#' Simulate node states under an Mk model
+#'
+#' @param par A vector of transition rate parameters for \code{lik}
+#' @param lik A likelihood function returned by \code{make.mk.epoch}
+#' @param n The number of simulations
+#' @param root.p A vector of probabilities for drawing the root state.
+#' The default is NULL
+#' @return A matrix of simulated node states for internal and terminal
+#' nodes. Rows correspond to node indices and columns to simulation
+#' number.
+#' @author Michael C. Grundler
+simulate.mk.epoch = function(par, lik, n=1L, root.p=NULL) {
+    stopifnot(inherits(lik, "mk.epoch"))
+
+    model = environment(lik)$model
+
+    return (.Call(mkepoch_simulate, par, model, as.integer(n), root.p))
+}
