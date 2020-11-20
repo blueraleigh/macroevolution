@@ -854,12 +854,7 @@ SEXP mkepoch_simulate(SEXP par, SEXP m, SEXP nsims, SEXP rootp)
                         lam = -1*RATE_ELEM(pstate, pstate, model->e.i);
                         t -= rexp(1 / lam);
                         if (t > 0) {
-                            norm = 0;
-                            for (j = (pstate+1); j < model->nstate; ++j)
-                                norm += RATE_ELEM(pstate, j, model->e.i);
-                            for (j = (pstate-1); j >= 0; --j)
-                                norm += RATE_ELEM(pstate, j, model->e.i);
-                            u = unif_rand() * norm;
+                            u = unif_rand() * lam;
                             for (j = (pstate+1); j < model->nstate; ++j) {
                                 u -= RATE_ELEM(pstate, j, model->e.i);
                                 if (u < 0) {
@@ -913,17 +908,9 @@ SEXP mkepoch_simulate(SEXP par, SEXP m, SEXP nsims, SEXP rootp)
                         lam = -1 * RATE_ELEM(pstate, pstate, model->rate->nmat-1);
                         t -= rexp(1 / lam);
                         if (t > 0) {
-                            norm = 0;
-                            for (j = (pstate+1); j < model->nstate; ++j)
-                                norm += RATE_ELEM(pstate, j,
-                                    model->rate->nmat-1);
-                            for (j = (pstate-1); j >= 0; --j)
-                                norm += RATE_ELEM(pstate, j,
-                                    model->rate->nmat-1);
-                            u = unif_rand() * norm;
+                            u = unif_rand() * lam;
                             for (j = (pstate+1); j < model->nstate; ++j) {
-                                u -= RATE_ELEM(pstate, j,
-                                    model->rate->nmat-1);
+                                u -= RATE_ELEM(pstate, j, model->rate->nmat-1);
                                 if (u < 0) {
                                     pstate = j;
                                     break;
@@ -931,8 +918,7 @@ SEXP mkepoch_simulate(SEXP par, SEXP m, SEXP nsims, SEXP rootp)
                             }
                             if (u > 0) {
                                 for (j = (pstate-1); j >= 0; --j) {
-                                    u -= RATE_ELEM(pstate, j,
-                                        model->rate->nmat-1);
+                                    u -= RATE_ELEM(pstate, j, model->rate->nmat-1);
                                     if (u < 0) {
                                         pstate = j;
                                         break;
