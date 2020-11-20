@@ -884,6 +884,15 @@ SEXP mkepoch_simulate(SEXP par, SEXP m, SEXP nsims, SEXP rootp)
             {
                 if (rootp != R_NilValue)
                 {
+                    if (TYPEOF(rootp) != REALSXP) {
+                        UNPROTECT(1);
+                        error("root.p is not a numeric vector");
+                    }
+                    if (LENGTH(rootp) != model->nstate) {
+                        UNPROTECT(1);
+                        error(
+                            "length of root.p does not equal number of states");
+                    }
                     norm = 0;
                     for (j = 0; j < model->nstate; ++j)
                         norm += REAL(rootp)[j];
