@@ -88,6 +88,23 @@ plot.tree = function(x, ...) {
         segments(x0, y0, x1, y1, lwd=edge.width, col=edge.color)
         draw.arc(ages(phy)[-(1:Ntip(phy))] + rb, theta[-(1:Ntip(phy)), 2:3], asp,
             lwd=edge.width[-(1:Ntip(phy))], col=edge.color[-(1:Ntip(phy))])
+        if (tip.labels) {
+            offset = ifelse(is.null(vargs$offset), 0.5, vargs$offset)
+            for (i in 1:Ntip(phy)) {
+                th = theta[i, 1]
+                if (th > pi/2 && th < 3*pi/2) {
+                    srt = (th+pi)*(180/pi)
+                    adj = 1
+                }
+                else {
+                    srt = th*(180/pi)
+                    adj = 0
+                }
+                r = max(ages(phy)) + rb
+                text(r * cos(th), r * asp * sin(th), tiplabels(phy)[i],
+                    srt=srt, cex=cex.label, xpd=NA, adj=adj)
+            }
+        }
         invisible(theta)
     }
 }
