@@ -78,7 +78,7 @@
 #'  obj$asr
 #'}
 make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init,
-    integrate.brlen)
+    integrate.brlen=FALSE)
 {
     stopifnot(is.tree(phy))
     stopifnot(tree.isbinary(phy))
@@ -99,6 +99,19 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init,
 
     r = as.integer(r)
     p = length(rnames)
+
+    if (missing(integrate.brlen))
+    {
+        integrate.brlen = 0L
+    }
+    else
+    {
+        stopifnot(inherits(integrate.brlen, "logical"))
+        if (integrate.brlen[1])
+            integrate.brlen = 1L
+        else
+            integrate.brlen = 0L
+    }
 
     f = (floor((Nnode(phy) - 1) / r) + 1) / (Nnode(phy) - 1)
     if (!integrate.brlen)
@@ -162,19 +175,6 @@ make.rcm.dmm = function(phy, x, r, stateid.init, rate.init, beta.init,
         stopifnot(length(stateid.init) == Ntip(phy))
         if (length(unique(stateid.init)) > r)
             stop("size of initial partition is too large")
-    }
-
-    if (missing(integrate.brlen))
-    {
-        integrate.brlen = 0L
-    }
-    else
-    {
-        stopifnot(inherits(integrate.brlen, "logical"))
-        if (integrate.brlen[1])
-            integrate.brlen = 1L
-        else
-            integrate.brlen = 0L
     }
 
     model = .Call(
