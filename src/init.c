@@ -63,6 +63,8 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(rcm_dmm_decomp, 5),
     CALLDEF(rcm_pij, 2),
     CALLDEF(rcm_dmm_doflux, 4),
+    CALLDEF(rcm_norm_model_init, 11),
+    CALLDEF(rcm_norm_posterior_normal, 1),
 
     CALLDEF(do_sankoff_downpass, 5),
     CALLDEF(do_sankoff_uppass, 6),

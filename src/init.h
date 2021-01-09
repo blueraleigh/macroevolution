@@ -61,6 +61,9 @@ SEXP rcm_posterior_coincidence(SEXP);
 SEXP rcm_dmm_decomp(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP rcm_pij(SEXP, SEXP);
 SEXP rcm_dmm_doflux(SEXP, SEXP, SEXP, SEXP);
+SEXP rcm_norm_model_init(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP,
+    SEXP, SEXP, SEXP);
+SEXP rcm_norm_posterior_normal(SEXP);
 
 SEXP do_sankoff_downpass(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP do_sankoff_uppass(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
