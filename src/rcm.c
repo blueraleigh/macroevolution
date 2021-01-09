@@ -605,7 +605,7 @@ static void slice_locate(double x, double w, double z, double *L, double *R, str
         model->rate = *R;
     }
 
-    *L = (*L < 0) ? 1e-8 : *L;
+    *L = (*L < 0) ? 1e-16 : *L;
     *R = (*R > model->rate_max) ? model->rate_max : *R;
 }
 
