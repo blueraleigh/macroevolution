@@ -48,6 +48,9 @@ consult the documentation for \code{read.mk.dmm}.
 Bayesian MCMC implementation of the Dirichlet-multinomial Markov process
 model described by Grundler and Rabosky (2020), https://doi.org/10.1093/sysbio/syaa031
 }
+\details{
+This function is deprecated in favor of \code{\link{make.rcm.dmm}}.
+}
 \examples{
 \dontrun{
  data(snakediet)

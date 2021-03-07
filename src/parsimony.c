@@ -498,13 +498,13 @@ SEXP do_fitch_phat(SEXP nstate, SEXP h, SEXP rtree)
             rowsum[k] += 1 / (double)n;
         }
     }
-/*
+
     for (i = 0; i < r; ++i)
     {
         for (k = 0; k < r; ++k)
             phat[i + k * r] /= rowsum[i];
     }
-*/
+
     UNPROTECT(1);
     return P;
 }

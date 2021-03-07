@@ -3,6 +3,8 @@
 #' Bayesian MCMC implementation of the Dirichlet-multinomial Markov process
 #' model described by Grundler and Rabosky (2020), https://doi.org/10.1093/sysbio/syaa031
 #'
+#' This function is deprecated in favor of \code{\link{make.rcm.dmm}}.
+#'
 #' @param phy An object of class \code{tree}.
 #' @param x A three column \code{data.frame} containing count data. The first
 #' column is expected to be the label of a terminal taxon; the second column, the
@@ -79,6 +81,7 @@
 #'  obj$asr
 #'}
 make.mk.dmm = function(phy, x, r, alpha.init, beta.init, stateid.init) {
+    warning("make.mk.dmm is deprecated in favor of make.rcm.dmm")
     stopifnot(is.tree(phy))
     stopifnot(tree.isbinary(phy))
     stopifnot(is.data.frame(x))

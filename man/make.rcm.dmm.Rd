@@ -4,7 +4,15 @@
 \alias{make.rcm.dmm}
 \title{Dirichlet-multinomial Markov process model (random cluster model)}
 \usage{
-make.rcm.dmm(phy, x, r, stateid.init, rate.init, beta.init, integrate.brlen)
+make.rcm.dmm(
+  phy,
+  x,
+  r,
+  stateid.init,
+  rate.init,
+  beta.init,
+  integrate.brlen = FALSE
+)
 }
 \arguments{
 \item{phy}{An object of class \code{tree}.}
