@@ -8,6 +8,7 @@
 SEXP phyr_read_newick(SEXP);
 SEXP phyr_write_newick(SEXP);
 SEXP phyr_tiplabels(SEXP);
+SEXP phyr_node_notes(SEXP);
 SEXP phyr_node_brlens(SEXP);
 SEXP phyr_node_ages(SEXP);
 SEXP phyr_ancestors(SEXP, SEXP);

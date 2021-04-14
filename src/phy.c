@@ -282,14 +282,14 @@ static int read_note(struct ReadCtx *ctx)
     c = ctx->newick[ctx->cursor++];
     if (c == '[') {
         opened = 1;
-        while (c = ctx->newick[ctx->cursor++], opened > 0) {
+        while ((c = ctx->newick[ctx->cursor++]), opened > 0) {
             if (c == '\0') {
                 phy_errno = 4;
                 return 1;
             }
             if (c == '[')
                 ++opened;
-            if (c == ']')
+            else if (c == ']')
                 --opened;
             if (opened) {
                 if (ctx->n == ctx->nAlloc) {

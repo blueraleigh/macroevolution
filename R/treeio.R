@@ -10,7 +10,7 @@
 read.newick = function(file, text=NULL) {
     if (is.null(text)) {
         stopifnot(file.exists(file))
-        newick = scan(file, what=character(), quiet=TRUE)
+        newick = paste0(scan(file, what=character(), quiet=TRUE, sep=";"), ";")
     } else {
         newick = text
     }
@@ -83,6 +83,20 @@ tiplabels = function(phy) {
         attr(phy, "tip.label") = tip.label
     }
     return (tip.label)
+}
+
+
+#' Notes for nodes embedded in a Newick strings
+#'
+#' @param phy An object of class \code{tree}.
+#' @return The embedded notes
+notes = function(phy) {
+    if (is.null(notes <- attr(phy, "notes"))) {
+        stopifnot(is.tree(phy))
+        notes = .Call(phyr_node_notes, phy)
+        attr(phy, "notes") = notes
+    }
+    return (notes)
 }
 
 

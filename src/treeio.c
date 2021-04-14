@@ -58,6 +58,26 @@ SEXP phyr_tiplabels(SEXP rtree)
 }
 
 
+SEXP phyr_node_notes(SEXP rtree)
+{
+    int i;
+    SEXP notes;
+    struct phy *phy = (struct phy*)R_ExternalPtrAddr(rtree);
+
+    notes = PROTECT(allocVector(STRSXP, phy->nnode));
+
+    for (i = 0; i < phy->nnode; ++i) {
+        if (phy->nodes[phy->vseq[i]]->note)
+            SET_STRING_ELT(notes, i, mkChar(phy->nodes[phy->vseq[i]]->note));
+        else
+            SET_STRING_ELT(notes, i, mkChar(""));
+    }
+
+    UNPROTECT(1);
+    return notes;
+}
+
+
 SEXP phyr_node_brlens(SEXP rtree)
 {
     int i;

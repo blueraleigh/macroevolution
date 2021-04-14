@@ -10,6 +10,7 @@ static const R_CallMethodDef CallEntries[] = {
     CALLDEF(phyr_read_newick, 1),
     CALLDEF(phyr_write_newick, 1),
     CALLDEF(phyr_tiplabels, 1),
+    CALLDEF(phyr_node_notes, 1),
     CALLDEF(phyr_node_brlens, 1),
     CALLDEF(phyr_node_ages, 1),
     CALLDEF(phyr_ancestors, 2),
