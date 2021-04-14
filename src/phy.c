@@ -276,15 +276,21 @@ static int read_label(struct ReadCtx *ctx)
 static int read_note(struct ReadCtx *ctx)
 {
     char c;
+    int opened;
     c = ctx->newick[ctx->cursor++];
-    if (c == '[')
-        while ((c = ctx->newick[ctx->cursor++]) != ']') {
+    if (c == '[') {
+        opened = 1;
+        while (c = ctx->newick[ctx->cursor++], opened > 0) {
             if (c == '\0') {
                 phy_errno = 4;
                 return 1;
             }
+            if (c == '[')
+                ++opened;
+            if (c == ']')
+                --opened;
         }
-    else
+    } else
         ctx->cursor--;
     return 0;
 }
