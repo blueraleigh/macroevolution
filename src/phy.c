@@ -354,7 +354,7 @@ static struct node *read_newick(struct ReadCtx *ctx)
 {
     char c;
 
-    if (ctx->newick[strlen(ctx->newick)] != ';') {
+    if (ctx->newick[strlen(ctx->newick)-1] != ';') {
         phy_errno = 4;
         return 0;
     }
