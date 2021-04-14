@@ -353,6 +353,12 @@ static int read_brlen(struct ReadCtx *ctx)
 static struct node *read_newick(struct ReadCtx *ctx)
 {
     char c;
+
+    if (ctx->newick[strlen(ctx->newick)] != ';') {
+        phy_errno = 4;
+        return 0;
+    }
+
     ctx->nnode++;
     ctx->root = node_new();
     if (ctx->root == NULL) {
