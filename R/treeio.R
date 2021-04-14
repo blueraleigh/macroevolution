@@ -10,7 +10,8 @@
 read.newick = function(file, text=NULL) {
     if (is.null(text)) {
         stopifnot(file.exists(file))
-        newick = paste0(scan(file, what=character(), quiet=TRUE, sep=";"), ";")
+        newick = paste0(
+            scan(file, what=character(), quiet=TRUE, sep=";", n=1L), ";")
     } else {
         newick = text
     }
