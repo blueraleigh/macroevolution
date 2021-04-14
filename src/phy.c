@@ -19,6 +19,7 @@ static struct node *node_new()
     node->index = -1;
     node->ndesc = 0;
     node->lab = 0;
+    node->note = 0;
     node->lfdesc = 0;
     node->next = 0;
     node->prev = 0;
@@ -37,6 +38,7 @@ static void node_free(struct node *node)
         if (node->data && node->data_free)
             node->data_free(node->data);
         free(node->lab);
+        free(node->note);
         free(node);
     }
 }
@@ -65,6 +67,7 @@ static void cleanup(struct node *root) {
                 r = q;
                 q = q->prev;
                 free(r->lab);
+                free(r->note);
                 free(r);
                 r = 0;
             }
@@ -72,12 +75,14 @@ static void cleanup(struct node *root) {
                 q = p;
                 p = p->anc;
                 free(q->lab);
+                free(q->note);
                 free(q);
                 q = 0;
             }
             q = p;
             p = p->next;
             free(q->lab);
+            free(q->note);
             free(q);
             q = 0;
         }
@@ -218,7 +223,6 @@ struct ReadCtx {
 static int read_label(struct ReadCtx *ctx)
 {
     char c;
-    char *z;
     int toread = 1;
     while (toread) {
         c = ctx->newick[ctx->cursor++];
@@ -247,13 +251,11 @@ static int read_label(struct ReadCtx *ctx)
             default:
                 if (ctx->n == ctx->nAlloc) {
                     ctx->nAlloc += 100;
-                    z = realloc(ctx->z, ctx->nAlloc);
-                    if (!z) {
+                    ctx->z = realloc(ctx->z, ctx->nAlloc);
+                    if (!ctx->z) {
                         phy_errno = 1;
                         return 1;
                     }
-                    else
-                        ctx->z = z;
                 }
                 ctx->z[ctx->n++] = c;
         }
@@ -289,7 +291,29 @@ static int read_note(struct ReadCtx *ctx)
                 ++opened;
             if (c == ']')
                 --opened;
+            if (opened) {
+                if (ctx->n == ctx->nAlloc) {
+                    ctx->nAlloc += 100;
+                    ctx->z = realloc(ctx->z, ctx->nAlloc);
+                    if (!ctx->z) {
+                        phy_errno = 1;
+                        return 1;
+                    }
+                }
+                ctx->z[ctx->n++] = c;
+            }
         }
+        ctx->z[ctx->n] = 0;
+        if (ctx->n) {
+            ctx->p->note = calloc(ctx->n+1, 1);
+            if (!ctx->p->note) {
+                phy_errno = 1;
+                ctx->p->note = 0;
+                return 1;
+            }
+            strcpy(ctx->p->note, ctx->z);
+        }
+        ctx->n = 0;
     } else
         ctx->cursor--;
     return 0;
@@ -300,7 +324,6 @@ static int read_brlen(struct ReadCtx *ctx)
 {
     char c;
     int toread = 1;
-    char *z;
     c = ctx->newick[ctx->cursor++];
     if (c == ':') {
         while (toread) {
@@ -322,13 +345,11 @@ static int read_brlen(struct ReadCtx *ctx)
                 case '.':
                     if (ctx->n == ctx->nAlloc) {
                         ctx->nAlloc += 100;
-                        z = realloc(ctx->z, ctx->nAlloc);
-                        if (!z) {
+                        ctx->z = realloc(ctx->z, ctx->nAlloc);
+                        if (!ctx->z) {
                             phy_errno = 1;
                             return 1;
                         }
-                        else
-                            ctx->z = z;
                     }
                     ctx->z[ctx->n++] = c;
                     break;

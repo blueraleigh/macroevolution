@@ -32,6 +32,9 @@ struct node {
     /* Name of node */
     char *lab;
 
+    /* Newick string note */
+    char *note;
+
     /* First immediate descendant. The other descendants
     ** are stored as a doubly-linked list with this descendant
     ** as the head. The next descendant is found as lfdesc->next,
