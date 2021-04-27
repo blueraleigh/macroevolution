@@ -30,6 +30,7 @@ static const R_CallMethodDef CallEntries[] = {
 
     CALLDEF(do_fitch_pscore, 3),
     CALLDEF(do_fitch_mpr, 4),
+    CALLDEF(do_fitch_mpr2, 5),
     CALLDEF(do_fitch_history, 5),
     CALLDEF(do_fitch_count, 3),
     CALLDEF(do_fitch_count2, 4),

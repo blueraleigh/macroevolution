@@ -10,7 +10,7 @@ prepare.sankoff = function(phy, data, levels, ambig) {
             downpass = xtabs(I ~ names(data) + data)
         } else {
             stopifnot(!is.null(names(ambig)))
-            stopifnot(any(levels %in% names(ambig)))
+            stopifnot(!any(levels %in% names(ambig)))
             poly = which(data %in% names(ambig))
             idata = factor(data[-poly], levels=levels)
             I = I[-poly]
