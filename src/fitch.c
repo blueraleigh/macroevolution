@@ -158,7 +158,7 @@ static int choose_state(int r, int stateset)
     int j;
     double k = 1;
     for (i = 0; i < r; ++i) {
-        if (stateset_contains(i, a)) {
+        if (stateset_contains(i, stateset)) {
             if (unif_rand() < 1/k)
                 j = i;
             k += 1;
@@ -285,7 +285,7 @@ static double fitch_count(struct phy *phy, int *f, int *g, int r)
 }
 
 
-SEXP do_fitch_count2(SEXP rtree, SEXP up, SEXP down, SEXP r)
+SEXP do_fitch_count3(SEXP rtree, SEXP up, SEXP down, SEXP r)
 {
     struct phy *phy = (struct phy *)R_ExternalPtrAddr(rtree);
     int *ddata = INTEGER(down);
